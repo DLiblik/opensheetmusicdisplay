@@ -69,6 +69,8 @@ import { GraphicalContinuousDynamicExpression } from "./GraphicalContinuousDynam
 import { FillEmptyMeasuresWithWholeRests } from "../../OpenSheetMusicDisplay/OSMDOptions";
 import { IStafflineNoteCalculator } from "../Interfaces/IStafflineNoteCalculator";
 import { GraphicalUnknownExpression } from "./GraphicalUnknownExpression";
+import { OSMDCommentReaderCalculator } from "../ScoreIO/OSMDCommentReaderCalculator";
+import { GraphicalComment } from "./GraphicalComment";
 
 /**
  * Class used to do all the calculations in a MusicSheet, which in the end populates a GraphicalMusicSheet.
@@ -87,6 +89,7 @@ export abstract class MusicSheetCalculator {
     protected graphicalLyricWords: GraphicalLyricWord[] = [];
 
     protected graphicalMusicSheet: GraphicalMusicSheet;
+    protected commentCalculator: OSMDCommentReaderCalculator;
     protected rules: EngravingRules;
     protected musicSystems: MusicSystem[];
 
@@ -111,8 +114,9 @@ export abstract class MusicSheetCalculator {
         }
     }
 
-    public initialize(graphicalMusicSheet: GraphicalMusicSheet): void {
+    public initialize(graphicalMusicSheet: GraphicalMusicSheet, commentCalculator: OSMDCommentReaderCalculator = undefined): void {
         this.graphicalMusicSheet = graphicalMusicSheet;
+        this.commentCalculator = commentCalculator;
         this.rules = graphicalMusicSheet.ParentMusicSheet.Rules;
         this.prepareGraphicalMusicSheet();
         //this.calculate();
@@ -843,8 +847,40 @@ export abstract class MusicSheetCalculator {
     }
 
     protected calculateComments(): void {
-        //log.debug("calculateComments not implemented");
-        return;
+        if (!this.commentCalculator) {
+            return;
+        }
+        //TODO: Need good place for this serialize code
+        //const xmlSeedString: string = "<comments></comments>";
+        //const parser: DOMParser = new DOMParser();
+        //const XMLDoc = parser.parseFromString(xmlSeedString, "text/xml");
+        for (const musicSystem of this.musicSystems) {
+            for (let stafflineIdx: number = 0; stafflineIdx < musicSystem.StaffLines.length; stafflineIdx++) {
+                const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
+                const commentList: GraphicalComment[] = this.commentCalculator.GetStafflineComments(musicSystem.Id, stafflineIdx, staffline);
+                if (!commentList || commentList.length === 0) {
+                    continue;
+                }
+                staffline.GraphicalComments = commentList;
+                const sbc: SkyBottomLineCalculator = staffline.SkyBottomLineCalculator;
+                for (const graphicalComment of staffline.GraphicalComments) {
+                    const startPositionX: number = this.getRelativeXPositionFromTimestamp(graphicalComment.position);
+                    graphicalComment.PositionAndShape.RelativePosition = new PointF2D(startPositionX, 0);
+                    graphicalComment.setLabelPositionAndShapeBorders();
+                    const commentBB: BoundingBox = graphicalComment.PositionAndShape;
+                    const start: number = commentBB.BorderMarginLeft + commentBB.RelativePosition.x;
+                    const end: number = commentBB.BorderMarginRight + commentBB.RelativePosition.x;
+                    let skylineValue: number = sbc.getSkyLineMinInRange(start, end);
+                    skylineValue -= (commentBB.Size.height + 0.25);
+                    //TODO: Take into account text alignment
+                    commentBB.RelativePosition.y = skylineValue;
+                    sbc.updateSkyLineInRange(start, end, skylineValue);
+                }
+            }
+           //musicSystem.SerializeCommentsXML(XMLDoc);
+        }
+        //const serializer: XMLSerializer = new XMLSerializer();
+        //console.log(serializer.serializeToString(XMLDoc));
     }
 
     protected calculateChordSymbols(): void {

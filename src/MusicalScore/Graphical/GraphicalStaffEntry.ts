@@ -17,6 +17,7 @@ import {GraphicalStaffEntryLink} from "./GraphicalStaffEntryLink";
 import {CollectionUtil} from "../../Util/CollectionUtil";
 import { GraphicalVoiceEntry } from "./GraphicalVoiceEntry";
 import { MusicSheetCalculator } from "./MusicSheetCalculator";
+import { GraphicalComment } from "./GraphicalComment";
 
 /**
  * The graphical counterpart of a [[SourceStaffEntry]].
@@ -50,6 +51,7 @@ export abstract class GraphicalStaffEntry extends GraphicalObject {
     public staffEntryParent: GraphicalStaffEntry;
     public parentVerticalContainer: VerticalGraphicalStaffEntryContainer;
     public tabStaffEntry: GraphicalStaffEntry = undefined;
+    public GraphicalComments: GraphicalComment[];
 
     private graphicalInstructions: AbstractGraphicalInstruction[] = [];
     private graphicalTies: GraphicalTie[] = [];

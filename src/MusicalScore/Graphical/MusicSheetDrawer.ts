@@ -551,16 +551,16 @@ export abstract class MusicSheetDrawer {
     }
 
     private drawComment(system: MusicSystem): void {
-        for (const comment of system.GraphicalComments) {
-            if (comment) {
-                if (comment.settings) {
-                    this.drawLabel(comment.settings, <number>GraphicalLayers.Comment);
-                }
-                if (comment.label) {
-                    this.drawLabel(comment.label, <number>GraphicalLayers.Comment);
+        for (const staffline of system.StaffLines) {
+            for (const comment of staffline.GraphicalComments) {
+                if (comment) {
+                    if (comment.GraphicalLabel) {
+                        this.drawLabel(comment.GraphicalLabel, <number>GraphicalLayers.Comment);
+                    }
                 }
             }
         }
+
     }
 
     private drawStaffLineSymbols(staffLine: StaffLine): void {

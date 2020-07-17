@@ -14,7 +14,6 @@ import {PointF2D} from "../../Common/DataObjects/PointF2D";
 import {GraphicalStaffEntry} from "./GraphicalStaffEntry";
 import {SystemLinesEnum} from "./SystemLinesEnum";
 import Dictionary from "typescript-collections/dist/lib/Dictionary";
-import {GraphicalComment} from "./GraphicalComment";
 import {GraphicalMarkedArea} from "./GraphicalMarkedArea";
 import {SystemLine} from "./SystemLine";
 import {SystemLinePosition} from "./SystemLinePosition";
@@ -42,7 +41,6 @@ export abstract class MusicSystem extends GraphicalObject {
     protected instrumentBrackets: GraphicalObject[] = [];
     protected groupBrackets: GraphicalObject[] = [];
     protected graphicalMarkedAreas: GraphicalMarkedArea[] = [];
-    protected graphicalComments: GraphicalComment[] = [];
     protected systemLines: SystemLine[] = [];
     public breaksPage: boolean = false;
 
@@ -105,10 +103,6 @@ export abstract class MusicSystem extends GraphicalObject {
 
     public get GraphicalMarkedAreas(): GraphicalMarkedArea[] {
         return this.graphicalMarkedAreas;
-    }
-
-    public get GraphicalComments(): GraphicalComment[] {
-        return this.graphicalComments;
     }
 
     public get SystemLines(): SystemLine[] {
@@ -507,5 +501,16 @@ export abstract class MusicSystem extends GraphicalObject {
                 staffLine.StaffLines[i].End = lineEnd;
             }
         }
+    }
+
+    public SerializeCommentsXML(document: XMLDocument): Node {
+        const systemNode: HTMLElement = document.createElement("system");
+        systemNode.setAttribute("id", this.Id.toString());
+        document.childNodes[0].appendChild(systemNode);
+        for (let idx: number = 0; idx < this.StaffLines.length; idx++) {
+            //TODO: Maybe init the stafflines with an index property on creation?
+            systemNode.appendChild(this.StaffLines[idx].SerializeCommentsXML(document, idx));
+        }
+        return systemNode;
     }
 }

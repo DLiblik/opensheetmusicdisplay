@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<comments>
+	<system id="1">
+		<staffline id="0">
+			<comment r="255" g="0" b="0" size="14">Test Comment
+        	Test Newline
+        	<location num="7" denom="4"/>
+    		</comment>
+    	</staffline>
+    	<staffline id="1">
+    		<comment r="255" g="0" b="0" size="15">Test Comment
+        	Test Newline
+        	<location num="1" denom="4"/>
+        	</comment>
+        </staffline>
+        <staffline id="2">
+        	<comment r="255" g="0" b="0" size="12">Test Comment
+        	Test Newline
+        	<location num="12" denom="4"/>
+        	</comment>
+        </staffline>
+    </system>
+</comments>

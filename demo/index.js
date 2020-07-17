@@ -56,7 +56,9 @@ import * as svg2pdf from '../node_modules/svg2pdf.js/dist/svg2pdf.min';
             "Telemann, G.P. - Sonate-Nr.1.1-Dolce": "TelemannWV40.102_Sonate-Nr.1.1-Dolce.xml",
             "Telemann, G.P. - Sonate-Nr.1.2-Allegro": "TelemannWV40.102_Sonate-Nr.1.2-Allegro-F-Dur.xml",
         },
-
+        comments = {
+            "Beethoven_AnDieFerneGeliebte.xml": "Beethoven_AnDieFerneGeliebte_comments.xml"
+        },
         zoom = 1.0,
         // HTML Elements in the page
         divControls,
@@ -569,25 +571,32 @@ import * as svg2pdf from '../node_modules/svg2pdf.js/dist/svg2pdf.min';
     }
 
     function selectSampleOnChange(str) {
+        var comment = undefined;
+        var sampleStr = undefined;
         error();
         disable();
         var isCustom = typeof str === "string";
         if (!isCustom) {
             if (selectSample) {
-                str = sampleFolder + selectSample.value;
+                sampleStr = selectSample.value;
+                str = sampleFolder + sampleStr;
             } else {
                 if (samples && samples.length > 0) {
-                    str = sampleFolder + samples[0];
+                    sampleStr = samples[0];
+                    str = sampleFolder + sampleStr;
                 } else {
                     return; // no sample to load right now
                 }
+            }
+            if(comments.hasOwnProperty(sampleStr)){
+                comment = comments[sampleStr];
             }
         }
         // zoom = 1.0;
 
         setSampleSpecificOptions(str, isCustom);
 
-        openSheetMusicDisplay.load(str).then(
+        openSheetMusicDisplay.load(str, comment).then(
             function () {
                 // This gives you access to the osmd object in the console. Do not use in productive code
                 window.osmd = openSheetMusicDisplay;

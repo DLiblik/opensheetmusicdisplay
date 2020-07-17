@@ -23,16 +23,17 @@ import {CollectionUtil} from "../../Util/CollectionUtil";
 import {SelectionStartSymbol} from "./SelectionStartSymbol";
 import {SelectionEndSymbol} from "./SelectionEndSymbol";
 import {OutlineAndFillStyleEnum} from "./DrawingEnums";
+import { OSMDCommentReaderCalculator } from "../ScoreIO/OSMDCommentReaderCalculator";
 
 /**
  * The graphical counterpart of a [[MusicSheet]]
  */
 export class GraphicalMusicSheet {
-    constructor(musicSheet: MusicSheet, calculator: MusicSheetCalculator) {
+    constructor(musicSheet: MusicSheet, calculator: MusicSheetCalculator, commentCalculator: OSMDCommentReaderCalculator = undefined) {
         this.musicSheet = musicSheet;
         this.numberOfStaves = this.musicSheet.Staves.length;
         this.calculator = calculator;
-        this.calculator.initialize(this);
+        this.calculator.initialize(this, commentCalculator);
     }
 
     private musicSheet: MusicSheet;

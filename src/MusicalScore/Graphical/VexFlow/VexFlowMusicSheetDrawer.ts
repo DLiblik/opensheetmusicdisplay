@@ -400,6 +400,9 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         let color: string;
         if (this.rules.ColoringEnabled) {
             color = graphicalLabel.Label.colorDefault;
+            if (graphicalLabel.Label.color) {
+                color = graphicalLabel.Label.color.toString();
+            }
             if (!color) {
                 color = this.rules.DefaultColorLabel;
             }

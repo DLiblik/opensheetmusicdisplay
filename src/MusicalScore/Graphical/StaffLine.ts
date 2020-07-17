@@ -13,6 +13,7 @@ import { SkyBottomLineCalculator } from "./SkyBottomLineCalculator";
 import { GraphicalOctaveShift } from "./GraphicalOctaveShift";
 import { GraphicalSlur } from "./GraphicalSlur";
 import { AbstractGraphicalExpression } from "./AbstractGraphicalExpression";
+import { GraphicalComment } from "./GraphicalComment";
 
 /**
  * A StaffLine contains the [[Measure]]s in one line of the music sheet
@@ -32,6 +33,7 @@ export abstract class StaffLine extends GraphicalObject {
     private staffHeight: number;
     private topLineOffset: number;
     private bottomLineOffset: number;
+    private graphicalComments: GraphicalComment[] = [];
 
     // For displaying Slurs
     protected graphicalSlurs: GraphicalSlur[] = [];
@@ -49,6 +51,13 @@ export abstract class StaffLine extends GraphicalObject {
         this.calculateStaffLineOffsets();
     }
 
+    public get GraphicalComments(): GraphicalComment[] {
+        return this.graphicalComments;
+    }
+
+    public set GraphicalComments(comments: GraphicalComment[]) {
+        this.graphicalComments = comments;
+    }
     /**
      * If the musicXML sets different numbers of stafflines, we need to have different offsets
      * to accomodate this - primarily for the sky and bottom lines and cursor.
@@ -232,5 +241,14 @@ export abstract class StaffLine extends GraphicalObject {
             }
         }
         return closestStaffentry;
+    }
+
+    public SerializeCommentsXML(document: XMLDocument, myIndex: number): Node {
+        const stafflineNode: HTMLElement = document.createElement("staffline");
+        stafflineNode.setAttribute("id", myIndex.toString());
+        for (const graphicalComment of this.GraphicalComments) {
+            stafflineNode.appendChild(graphicalComment.SerializeToXML(document));
+        }
+        return stafflineNode;
     }
 }
