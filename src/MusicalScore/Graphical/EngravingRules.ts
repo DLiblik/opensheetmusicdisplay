@@ -443,7 +443,7 @@ export class EngravingRules {
         this.minimumCrossedBeamDifferenceMargin = 0.0001;
 
         // xSpacing Variables
-        this.voiceSpacingMultiplierVexflow = 1.0;
+        this.voiceSpacingMultiplierVexflow = 0.85;
         this.voiceSpacingAddendVexflow = 3.0;
         this.displacedNoteMargin = 0.1;
         this.minNoteDistance = 2.0;
