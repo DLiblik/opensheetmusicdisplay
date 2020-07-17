@@ -130,6 +130,11 @@ export class OpenSheetMusicDisplay {
                         console.error("[OSMD] osmd.load(string): Could not process comment string. Did not find <?xml at beginning.");
                         resolve(undefined);
                     }
+                } else if (comment instanceof Document) {
+                    resolve(comment);
+                } else {
+                    log.debug("[OSMD] osmd.load(): Could not load comment. Not instance of string or Document.");
+                    resolve(undefined);
                 }
             });
 
@@ -147,7 +152,7 @@ export class OpenSheetMusicDisplay {
                                 resolve(x);
                             },
                             (err: any) => {
-                                log.debug(err);
+                                log.error(err);
                                 reject(err);
                                 throw new Error("OpenSheetMusicDisplay: Invalid MXL file");
                             }
@@ -177,8 +182,16 @@ export class OpenSheetMusicDisplay {
                             (exc: Error) => { reject(exc); throw exc; }
                         );
                     } else {
-                        console.error("[OSMD] osmd.load(string): Could not process string. Did not find <?xml at beginning.");
+                        const err: Error = new Error("[OSMD] osmd.load(string): Could not process string. Did not find <?xml at beginning.");
+                        console.error(err.message);
+                        reject(err);
                     }
+                } else if (content instanceof Document) {
+                    resolve(content);
+                } else {
+                    const err: Error = new Error("[OSMD] osmd.load(): content is not string or Document. Could not load.");
+                    console.error(err.message);
+                    reject(err);
                 }
             });
 
@@ -238,6 +251,9 @@ export class OpenSheetMusicDisplay {
                 }).finally(function(): void {
                     mainResolve();
                 });
+            }).catch(function(reason: any): void {
+                log.debug("Content XML Promise was rejected");
+                mainReject(reason);
             });
         });
         return loadPromise;
