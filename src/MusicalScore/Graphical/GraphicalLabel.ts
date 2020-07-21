@@ -49,10 +49,12 @@ export class GraphicalLabel extends Clickable {
         this.TextLines = [];
         const labelMarginBorderFactor: number = this.rules?.LabelMarginBorderFactor ?? 0.1;
         const lines: string[] = this.Label.text.split(/[\n\r]+/g);
-        const numOfLines: number = lines.length;
         let maxWidth: number = 0;
-        for (let i: number = 0; i < numOfLines; i++) {
+        for (let i: number = 0; i < lines.length; i++) {
             const line: string = lines[i].trim();
+            if (!line || line === "") {
+                continue;
+            }
             const widthToHeightRatio: number =
             MusicSheetCalculator.TextMeasurer.computeTextWidthToHeightRatio(
                line, this.Label.font, this.Label.fontStyle, this.label.fontFamily);
@@ -83,7 +85,7 @@ export class GraphicalLabel extends Clickable {
             line.xOffset = xOffset;
         }
 
-        const height: number = this.Label.fontHeight * numOfLines;
+        const height: number = this.Label.fontHeight * this.TextLines.length;
         const bbox: BoundingBox = this.PositionAndShape;
 
         switch (this.Label.textAlignment) {

@@ -89,7 +89,7 @@ export abstract class MusicSheetCalculator {
     protected graphicalLyricWords: GraphicalLyricWord[] = [];
 
     protected graphicalMusicSheet: GraphicalMusicSheet;
-    protected commentCalculator: OSMDCommentReaderCalculator;
+    protected commentCalculators: OSMDCommentReaderCalculator[];
     protected rules: EngravingRules;
     protected musicSystems: MusicSystem[];
 
@@ -114,9 +114,9 @@ export abstract class MusicSheetCalculator {
         }
     }
 
-    public initialize(graphicalMusicSheet: GraphicalMusicSheet, commentCalculator: OSMDCommentReaderCalculator = undefined): void {
+    public initialize(graphicalMusicSheet: GraphicalMusicSheet, commentCalculators: OSMDCommentReaderCalculator[] = undefined): void {
         this.graphicalMusicSheet = graphicalMusicSheet;
-        this.commentCalculator = commentCalculator;
+        this.commentCalculators = commentCalculators;
         this.rules = graphicalMusicSheet.ParentMusicSheet.Rules;
         this.prepareGraphicalMusicSheet();
         //this.calculate();
@@ -783,7 +783,6 @@ export abstract class MusicSheetCalculator {
                 this.updateStaffLineBorders(staffLine);
             }
         }
-
         // calculate Y-spacing -> MusicPages are created here
         musicSystemBuilder.calculateSystemYLayout();
         // calculate Comments for each Staffline
@@ -847,17 +846,23 @@ export abstract class MusicSheetCalculator {
     }
 
     protected calculateComments(): void {
-        if (!this.commentCalculator) {
+        if (!this.commentCalculators || this.commentCalculators.length === 0) {
             return;
         }
         //TODO: Need good place for this serialize code
-        //const xmlSeedString: string = "<comments></comments>";
+        //const xmlSeedString: string = "<?xml version="1.0" encoding="UTF-8"?><comments></comments>";
         //const parser: DOMParser = new DOMParser();
         //const XMLDoc = parser.parseFromString(xmlSeedString, "text/xml");
         for (const musicSystem of this.musicSystems) {
             for (let stafflineIdx: number = 0; stafflineIdx < musicSystem.StaffLines.length; stafflineIdx++) {
                 const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
-                const commentList: GraphicalComment[] = this.commentCalculator.GetStafflineComments(musicSystem.Id, stafflineIdx, staffline);
+                let commentList: GraphicalComment[] = [];
+                for (const commentCalc of this.commentCalculators) {
+                    const currentList: GraphicalComment[] = commentCalc.GetStafflineComments(musicSystem.Id, stafflineIdx, staffline);
+                    if (currentList && currentList.length > 0) {
+                        commentList = commentList.concat(currentList);
+                    }
+                }
                 if (!commentList || commentList.length === 0) {
                     continue;
                 }
@@ -871,7 +876,7 @@ export abstract class MusicSheetCalculator {
                     const start: number = commentBB.BorderMarginLeft + commentBB.RelativePosition.x;
                     const end: number = commentBB.BorderMarginRight + commentBB.RelativePosition.x;
                     let skylineValue: number = sbc.getSkyLineMinInRange(start, end);
-                    skylineValue -= (commentBB.Size.height + 0.25);
+                    skylineValue -= (commentBB.Size.height + 0.3);
                     //TODO: Take into account text alignment
                     commentBB.RelativePosition.y = skylineValue;
                     sbc.updateSkyLineInRange(start, end, skylineValue);

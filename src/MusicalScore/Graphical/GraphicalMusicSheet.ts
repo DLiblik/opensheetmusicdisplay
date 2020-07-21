@@ -29,11 +29,11 @@ import { OSMDCommentReaderCalculator } from "../ScoreIO/OSMDCommentReaderCalcula
  * The graphical counterpart of a [[MusicSheet]]
  */
 export class GraphicalMusicSheet {
-    constructor(musicSheet: MusicSheet, calculator: MusicSheetCalculator, commentCalculator: OSMDCommentReaderCalculator = undefined) {
+    constructor(musicSheet: MusicSheet, calculator: MusicSheetCalculator, commentCalculators: OSMDCommentReaderCalculator[] = undefined) {
         this.musicSheet = musicSheet;
         this.numberOfStaves = this.musicSheet.Staves.length;
         this.calculator = calculator;
-        this.calculator.initialize(this, commentCalculator);
+        this.calculator.initialize(this, commentCalculators);
     }
 
     private musicSheet: MusicSheet;

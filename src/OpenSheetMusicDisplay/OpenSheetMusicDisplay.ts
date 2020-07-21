@@ -85,7 +85,7 @@ export class OpenSheetMusicDisplay {
      * Load a MusicXML file
      * @param content is either the url of a file, or the root node of a MusicXML document, or the string content of a .xml/.mxl file
      */
-    public load(content: string | Document, comment?: string | Document): Promise<{}> {
+    public load(content: string | Document, comments?: (string|Document)[]): Promise<{}> {
         // Warning! This function is asynchronous! No error handling is done here.
         this.reset();
 
@@ -93,55 +93,75 @@ export class OpenSheetMusicDisplay {
         const loadPromise: Promise<any> = new Promise(
             function(mainResolve: (value?: any) => void, mainReject: (reason?: any) => void): void {
 
-            const commentPromise: Promise<string | Document> = new Promise<string | Document>(
-                function(resolve: (value?: string | Document) => void, reject: (reason?: any) => void): void {
-                if (typeof comment === "string") {
-                    const str: string = <string>comment;
-                    // Javascript loads strings as utf-16, which is wonderful BS if you want to parse UTF-8 :S
-                    if (str.substr(0, 3) === "\uf7ef\uf7bb\uf7bf") {
-                        log.debug("[OSMD] UTF with BOM detected, truncate first three bytes and pass along: " + str);
-                        // UTF with BOM detected, truncate first three bytes and pass along
-                        resolve(str.substr(3));
-                    }
-                    let trimmedCommentStr: string = str;
-                    if (/^\s/.test(trimmedCommentStr)) { // only trim if we need to. (end of string is irrelevant)
-                        trimmedCommentStr = trimmedCommentStr.trim(); // trim away empty lines at beginning etc
-                    }
-                    if (trimmedCommentStr.substr(0, 6).includes("<?xml")) { // first character is sometimes null, making first five characters '<?xm'.
-                        log.debug("[OSMD] Finally parsing XML content, length: " + trimmedCommentStr.length);
-                        // Parse the string representing an xml file
-                        const parser: DOMParser = new DOMParser();
-                        resolve(parser.parseFromString(trimmedCommentStr, "application/xml"));
-                    } else if (trimmedCommentStr.length < 2083) { // TODO do proper URL format check
-                        log.debug("[OSMD] Retrieve the file at the given URL: " + trimmedCommentStr);
-                        // Assume now "str" is a URL
-                        // Retrieve the file at the given URL
-                        AJAX.ajax(trimmedCommentStr).then(
-                            (commentS: string) => {
-                                resolve(commentS);
-                            },
-                            (exception: Error) => {
-                                console.log("Error loading comment file.", exception);
-                                //resolve no matter what
-                                resolve(undefined);
+            const commentsPromise: Promise<Document[]> = new Promise<Document[]>(
+                function(resolveCommentsPromise: (value?: Document[]) => void, rejectCommentsPromise: (reason?: any) => void): void {
+                if (comments && comments.length > 0) {
+                    const commentPromisesList: Promise<Document>[] = [];
+                    for (const comment of comments) {
+                        const nextCommentPromise: Promise<Document> = new Promise<Document>(
+                            function(resolveCommentPromise: (commentPromiseVal?: Document) => void,
+                                     rejectCommentPromise: (commentRejectReason?: any) => void): void {
+                                if (typeof comment === "string") {
+                                    const parser: DOMParser = new DOMParser();
+                                    const str: string = <string>comment;
+                                    // Javascript loads strings as utf-16, which is wonderful BS if you want to parse UTF-8 :S
+                                    if (str.substr(0, 3) === "\uf7ef\uf7bb\uf7bf") {
+                                        log.debug("[OSMD] UTF with BOM detected, truncate first three bytes and pass along: " + str);
+                                        // UTF with BOM detected, truncate first three bytes and pass along
+                                        resolveCommentPromise(parser.parseFromString(str.substr(3), "application/xml"));
+                                    }
+                                    let trimmedCommentStr: string = str;
+                                    if (/^\s/.test(trimmedCommentStr)) { // only trim if we need to. (end of string is irrelevant)
+                                        trimmedCommentStr = trimmedCommentStr.trim(); // trim away empty lines at beginning etc
+                                    }// first character is sometimes null, making first five characters '<?xm'.
+                                    if (trimmedCommentStr.substr(0, 6).includes("<?xml")) {
+                                        log.debug("[OSMD] Finally parsing XML content, length: " + trimmedCommentStr.length);
+                                        // Parse the string representing an xml file
+                                        resolveCommentPromise(parser.parseFromString(trimmedCommentStr, "application/xml"));
+                                    } else if (trimmedCommentStr.length < 2083) { // TODO do proper URL format check
+                                        log.debug("[OSMD] Retrieve the file at the given URL: " + trimmedCommentStr);
+                                        // Assume now "str" is a URL
+                                        // Retrieve the file at the given URL
+                                        AJAX.ajax(trimmedCommentStr).then(
+                                            (commentS: string) => {
+                                                resolveCommentPromise(parser.parseFromString(commentS, "application/xml"));
+                                            },
+                                            (exception: Error) => {
+                                                console.log("Error loading comment file.", exception);
+                                                //resolve no matter what
+                                                resolveCommentPromise(undefined);
+                                            }
+                                        );
+                                    } else {
+                                        console.error("[OSMD] osmd.load(string): Could not process comment string. Did not find <?xml at beginning.");
+                                        resolveCommentPromise(undefined);
+                                    }
+                                } else if (comment instanceof Document) {
+                                    resolveCommentPromise(comment);
+                                } else {
+                                    log.debug("[OSMD] osmd.load(): Could not load comment. Not instance of string or Document.");
+                                    resolveCommentPromise(undefined);
+                                }
                             }
                         );
-                    } else {
-                        console.error("[OSMD] osmd.load(string): Could not process comment string. Did not find <?xml at beginning.");
-                        resolve(undefined);
+                        commentPromisesList.push(nextCommentPromise);
                     }
-                } else if (comment instanceof Document) {
-                    resolve(comment);
+                    Promise.all(commentPromisesList).then((commentDocuments: Document[]): void => {
+                        resolveCommentsPromise(commentDocuments);
+                    }).catch((reason: any): void => {
+                        console.error("[OSMD] osmd.load(string): Error loading comment list: ", reason);
+                        resolveCommentsPromise(undefined);
+                    });
                 } else {
-                    log.debug("[OSMD] osmd.load(): Could not load comment. Not instance of string or Document.");
-                    resolve(undefined);
+                    resolveCommentsPromise(undefined);
                 }
             });
 
-            const contentPromise: Promise<string | Document> = new Promise<string | Document>(
-                function(resolve: (value?: string | Document) => void, reject: (reason?: any) => void): void {
+            const contentPromise: Promise<Document> = new Promise<Document>(
+                function(resolveContentPromise: (value?: Document) => void, rejectContentPromise: (reason?: any) => void): void {
                 //console.log("typeof content: " + typeof content);
                 if (typeof content === "string") {
+                    const parser: DOMParser = new DOMParser();
                     const str: string = <string>content;
                     // console.log("substring: " + str.substr(0, 5));
                     if (str.substr(0, 4) === "\x50\x4b\x03\x04") {
@@ -149,11 +169,11 @@ export class OpenSheetMusicDisplay {
                         // This is a zip file, unpack it first
                         MXLHelper.MXLtoXMLstring(str).then(
                             (x: string) => {
-                                resolve(x);
+                                resolveContentPromise(parser.parseFromString(x, "application/xml"));
                             },
                             (err: any) => {
                                 log.error(err);
-                                reject(err);
+                                rejectContentPromise(err);
                                 throw new Error("OpenSheetMusicDisplay: Invalid MXL file");
                             }
                         );
@@ -162,7 +182,7 @@ export class OpenSheetMusicDisplay {
                     if (str.substr(0, 3) === "\uf7ef\uf7bb\uf7bf") {
                         log.debug("[OSMD] UTF with BOM detected, truncate first three bytes and pass along: " + str);
                         // UTF with BOM detected, truncate first three bytes and pass along
-                        resolve(str.substr(3));
+                        parser.parseFromString(str.substr(3), "application/xml");
                     }
                     let trimmedStr: string = str;
                     if (/^\s/.test(trimmedStr)) { // only trim if we need to. (end of string is irrelevant)
@@ -171,43 +191,35 @@ export class OpenSheetMusicDisplay {
                     if (trimmedStr.substr(0, 6).includes("<?xml")) { // first character is sometimes null, making first five characters '<?xm'.
                         log.debug("[OSMD] Finally parsing XML content, length: " + trimmedStr.length);
                         // Parse the string representing an xml file
-                        const parser: DOMParser = new DOMParser();
-                        resolve(parser.parseFromString(trimmedStr, "application/xml"));
+                        resolveContentPromise(parser.parseFromString(trimmedStr, "application/xml"));
                     } else if (trimmedStr.length < 2083) { // TODO do proper URL format check
                         log.debug("[OSMD] Retrieve the file at the given URL: " + trimmedStr);
                         // Assume now "str" is a URL
                         // Retrieve the file at the given URL
                         AJAX.ajax(trimmedStr).then(
-                            (s: string) => { resolve(s); },
-                            (exc: Error) => { reject(exc); throw exc; }
+                            (s: string) => { resolveContentPromise(parser.parseFromString(s, "application/xml")); },
+                            (exc: Error) => { rejectContentPromise(exc); throw exc; }
                         );
                     } else {
                         const err: Error = new Error("[OSMD] osmd.load(string): Could not process string. Did not find <?xml at beginning.");
                         console.error(err.message);
-                        reject(err);
+                        rejectContentPromise(err);
                     }
                 } else if (content instanceof Document) {
-                    resolve(content);
+                    resolveContentPromise(content);
                 } else {
                     const err: Error = new Error("[OSMD] osmd.load(): content is not string or Document. Could not load.");
                     console.error(err.message);
-                    reject(err);
+                    rejectContentPromise(err);
                 }
             });
 
-            contentPromise.then(function(musicXML: string | Document): void {
-                //still need to parse xml
-                if (!(musicXML instanceof Document)) {
-                    const parser: DOMParser = new DOMParser();
-                    musicXML = parser.parseFromString(musicXML.toString(), "application/xml");
-                }
+            contentPromise.then(function(musicXML: Document): void {
                 if (!musicXML || !(<any>musicXML).nodeName) {
                     mainReject(new Error("OpenSheetMusicDisplay: The document which was provided is invalid"));
                 }
-
-                const xmlDocument: Document = (<Document>musicXML);
-                const xmlDocumentNodes: NodeList = xmlDocument.childNodes;
-                log.debug("[OSMD] load(), Document url: " + xmlDocument.URL);
+                const xmlDocumentNodes: NodeList = musicXML.childNodes;
+                log.debug("[OSMD] load(), Document url: " + musicXML.URL);
 
                 let scorePartwiseElement: Element;
                 for (let i: number = 0, length: number = xmlDocumentNodes.length; i < length; i += 1) {
@@ -231,23 +243,21 @@ export class OpenSheetMusicDisplay {
                 log.info(`[OSMD] Loaded sheet ${self.sheet.TitleString} successfully.`);
 
                 //If we have a comment XML, read it
-                let commentReader: OSMDCommentReaderCalculator = undefined;
+                let commentReaders: OSMDCommentReaderCalculator[] = undefined;
 
                 //this should resolve no matter what
-                commentPromise.then(function(commentXML: string | Document): void {
-                    if (commentXML) {
-                        if (!(commentXML instanceof Document)) {
-                            const parser: DOMParser = new DOMParser();
-                            commentXML = parser.parseFromString(commentXML.toString(), "text/xml");
-                        }
-                        if (commentXML instanceof Document) {
-                            commentReader = new OSMDCommentReaderCalculator(self.rules, commentXML);
-                        } else {
-                            console.error("Could not parse comment XML");
+                commentsPromise.then(function(commentsList: Document[]): void {
+                    if (commentsList && commentsList.length > 0) {
+                        commentReaders = [];
+                        for (const commentXML of commentsList) {
+                            if (commentXML) {
+                                const commentReader: OSMDCommentReaderCalculator = new OSMDCommentReaderCalculator(self.rules, commentXML);
+                                commentReaders.push(commentReader);
+                            }
                         }
                     }
                     self.needBackendUpdate = true;
-                    self.updateGraphic(commentReader);
+                    self.updateGraphic(commentReaders);
                 }).finally(function(): void {
                     mainResolve();
                 });
@@ -262,9 +272,9 @@ export class OpenSheetMusicDisplay {
     /**
      * (Re-)creates the graphic sheet from the music sheet
      */
-    public updateGraphic(commentCalculator: OSMDCommentReaderCalculator = undefined): void {
+    public updateGraphic(commentCalculators: OSMDCommentReaderCalculator[] = undefined): void {
         const calc: MusicSheetCalculator = new VexFlowMusicSheetCalculator(this.rules);
-        this.graphic = new GraphicalMusicSheet(this.sheet, calc, commentCalculator);
+        this.graphic = new GraphicalMusicSheet(this.sheet, calc, commentCalculators);
         if (this.drawingParameters.drawCursors && this.cursor) {
             this.cursor.init(this.sheet.MusicPartManager, this.graphic);
         }

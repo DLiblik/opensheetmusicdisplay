@@ -53,8 +53,6 @@ export class GraphicalComment {
         innerLabel.color = fontColor;
         innerLabel.fontStyle = fontStyle;
         this.graphicalLabel = new GraphicalLabel(innerLabel, fontSize, innerLabel.textAlignment, rules, undefined);
-        //this.graphicalLabel.PositionAndShape.RelativePosition = new PointF2D(xLocation, 0);
-        //this.graphicalLabel.setLabelPositionAndShapeBorders();
     }
 
     public SerializeToXML(document: XMLDocument): Node {
