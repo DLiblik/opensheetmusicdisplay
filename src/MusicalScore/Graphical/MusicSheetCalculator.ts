@@ -849,10 +849,6 @@ export abstract class MusicSheetCalculator {
         if (!this.commentCalculators || this.commentCalculators.length === 0) {
             return;
         }
-        //TODO: Need good place for this serialize code
-        //const xmlSeedString: string = "<?xml version="1.0" encoding="UTF-8"?><comments></comments>";
-        //const parser: DOMParser = new DOMParser();
-        //const XMLDoc = parser.parseFromString(xmlSeedString, "text/xml");
         for (const musicSystem of this.musicSystems) {
             for (let stafflineIdx: number = 0; stafflineIdx < musicSystem.StaffLines.length; stafflineIdx++) {
                 const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
@@ -882,10 +878,7 @@ export abstract class MusicSheetCalculator {
                     sbc.updateSkyLineInRange(start, end, skylineValue);
                 }
             }
-           //musicSystem.SerializeCommentsXML(XMLDoc);
         }
-        //const serializer: XMLSerializer = new XMLSerializer();
-        //console.log(serializer.serializeToString(XMLDoc));
     }
 
     protected calculateChordSymbols(): void {

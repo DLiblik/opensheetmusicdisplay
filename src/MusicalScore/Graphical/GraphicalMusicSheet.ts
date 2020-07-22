@@ -913,6 +913,13 @@ export class GraphicalMusicSheet {
         }
         return maxLength;
     }
+
+    public SerializeCommentsXML(document: XMLDocument): XMLDocument {
+        for (let idx: number = 0; idx < this.MusicPages.length; idx++) {
+            this.MusicPages[idx].SerializeCommentsXML(document);
+        }
+        return document;
+    }
 }
 
 export class SystemImageProperties {

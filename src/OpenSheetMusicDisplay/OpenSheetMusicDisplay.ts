@@ -355,6 +355,22 @@ export class OpenSheetMusicDisplay {
         //console.log("[OSMD] render finished");
     }
 
+    public serializeComments(): string {
+        if (!this.graphic || !this.graphic.MusicPages || this.graphic.MusicPages.length === 0) {
+            console.error("[OSMD] Music sheet must be rendered before comments can be serialized");
+            return;
+        }
+
+        let comments: string = "";
+        const xmlSeedString: string = "<?xml version='1.0' encoding='UTF-8'?><comments></comments>";
+        const parser: DOMParser = new DOMParser();
+        let XMLDoc: XMLDocument = parser.parseFromString(xmlSeedString, "text/xml");
+        XMLDoc = this.graphic.SerializeCommentsXML(XMLDoc);
+        const serializer: XMLSerializer = new XMLSerializer();
+        comments = serializer.serializeToString(XMLDoc);
+        return comments;
+    }
+
     private createOrRefreshRenderBackend(): void {
         // console.log("[OSMD] createOrRefreshRenderBackend()");
 
