@@ -914,7 +914,7 @@ export class GraphicalMusicSheet {
         return maxLength;
     }
 
-    public SerializeCommentsXML(document: XMLDocument): XMLDocument {
+    public SerializeCommentsXML(document: XMLDocument): Node {
         for (let idx: number = 0; idx < this.MusicPages.length; idx++) {
             this.MusicPages[idx].SerializeCommentsXML(document);
         }

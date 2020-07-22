@@ -504,12 +504,20 @@ export abstract class MusicSystem extends GraphicalObject {
     }
 
     public SerializeCommentsXML(document: XMLDocument): Node {
+        let hasChildren: boolean = false;
         const systemNode: HTMLElement = document.createElement("system");
         systemNode.setAttribute("id", this.Id.toString());
-        document.childNodes[0].appendChild(systemNode);
         for (let idx: number = 0; idx < this.StaffLines.length; idx++) {
+            const stafflineNode: Node = this.StaffLines[idx].SerializeCommentsXML(document, idx);
             //TODO: Maybe init the stafflines with an index property on creation?
-            systemNode.appendChild(this.StaffLines[idx].SerializeCommentsXML(document, idx));
+            if (stafflineNode) {
+                hasChildren = true;
+                systemNode.appendChild(stafflineNode);
+            }
+        }
+
+        if (hasChildren) {
+            document.childNodes[0].appendChild(systemNode);
         }
         return systemNode;
     }

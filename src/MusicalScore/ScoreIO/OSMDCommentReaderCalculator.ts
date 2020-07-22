@@ -80,7 +80,7 @@ export class OSMDCommentReaderCalculator {
         if (node.hasAttribute("font")) {
             font = parseInt(node.getAttribute("font"), 10);
         }
-        const text: string = node.textContent;
+        const text: string = node.textContent.trim();
 
         const timestamp: Fraction = new Fraction(num, denom);
         comment = new GraphicalComment(this.rules, text, undefined, timestamp, size, font, new OSMDColor(r, g, b), style);

@@ -82,7 +82,7 @@ export class GraphicalMusicPage extends GraphicalObject {
         // }
     }
 
-    public SerializeCommentsXML(document: XMLDocument): XMLDocument {
+    public SerializeCommentsXML(document: XMLDocument): Node {
         for (let idx: number = 0; idx < this.MusicSystems.length; idx++) {
             this.MusicSystems[idx].SerializeCommentsXML(document);
         }

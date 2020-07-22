@@ -365,10 +365,16 @@ export class OpenSheetMusicDisplay {
         const xmlSeedString: string = "<?xml version='1.0' encoding='UTF-8'?><comments></comments>";
         const parser: DOMParser = new DOMParser();
         let XMLDoc: XMLDocument = parser.parseFromString(xmlSeedString, "text/xml");
-        XMLDoc = this.graphic.SerializeCommentsXML(XMLDoc);
+        XMLDoc = this.graphic.SerializeCommentsXML(XMLDoc) as XMLDocument;
         const serializer: XMLSerializer = new XMLSerializer();
         comments = serializer.serializeToString(XMLDoc);
         return comments;
+    }
+
+    public saveCommentsXML(): void {
+        const blob: Blob = new Blob([this.serializeComments()], {type: "text/xml"});
+        const url: string = URL.createObjectURL(blob);
+        window.open(url, "_blank");
     }
 
     private createOrRefreshRenderBackend(): void {

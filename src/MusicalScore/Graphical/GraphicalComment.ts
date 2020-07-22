@@ -7,8 +7,9 @@ import { Fonts } from "../../Common/Enums/Fonts";
 import { EngravingRules } from "./EngravingRules";
 import { BoundingBox, GraphicalStaffEntry } from "..";
 import { Fraction } from "../../Common";
+import { IXMLSerializable } from "../Interfaces/IXMLSerializable";
 
-export class GraphicalComment {
+export class GraphicalComment implements IXMLSerializable {
 
     private associatedStaffEntry: GraphicalStaffEntry;
     private graphicalLabel: GraphicalLabel;

@@ -244,6 +244,10 @@ export abstract class StaffLine extends GraphicalObject {
     }
 
     public SerializeCommentsXML(document: XMLDocument, myIndex: number): Node {
+        if (!this.GraphicalComments || this.GraphicalComments.length === 0) {
+            return undefined;
+        }
+
         const stafflineNode: HTMLElement = document.createElement("staffline");
         stafflineNode.setAttribute("id", myIndex.toString());
         for (const graphicalComment of this.GraphicalComments) {
