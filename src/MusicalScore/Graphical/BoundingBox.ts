@@ -573,21 +573,24 @@ export class BoundingBox {
     }
 
     public getObjectsInRegion<T>(region: BoundingBox, liesInside: boolean = true): T[] {
-        if (<T>this.dataObject) {
-            if (liesInside) {
-                if (region.liesInsideBorders(this)) {
-                    return [this.dataObject as T];
-                }
-            } else {
-                if (region.collisionDetection(this)) {
-                    return [this.dataObject as T];
-                }
-            }
-            // FIXME Andrea: add here "return []"?
-        }
         const result: T[] = [];
         for (const child of this.childElements) {
             result.concat(child.getObjectsInRegion<T>(region, liesInside));
+        }
+
+        if (!result || result.length === 0) {
+            if (<T>this.dataObject) {
+                if (liesInside) {
+                    if (region.liesInsideBorders(this)) {
+                        return [this.dataObject as T];
+                    }
+                } else {
+                    if (region.collisionDetection(this)) {
+                        return [this.dataObject as T];
+                    }
+                }
+                // FIXME Andrea: add here "return []"?
+            }
         }
         return result;
         //return this.childElements.SelectMany(psi => psi.getObjectsInRegion<T>(region, liesInside));

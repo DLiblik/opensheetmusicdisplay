@@ -21,8 +21,8 @@ import { NoteEnum } from "..";
 import { AutoColorSet, GraphicalMusicPage } from "../MusicalScore";
 import { MusicPartManagerIterator } from "../MusicalScore/MusicParts";
 import { ITransposeCalculator } from "../MusicalScore/Interfaces";
-import { PointF2D } from "../Common/DataObjects";
 import { OSMDCommentReaderCalculator } from "../MusicalScore/ScoreIO/OSMDCommentReaderCalculator";
+import { PointF2D } from "../Common/DataObjects/PointF2D";
 /**
  * The main class and control point of OpenSheetMusicDisplay.<br>
  * It can display MusicXML sheet music files in an HTML element container.<br>
@@ -81,6 +81,57 @@ export class OpenSheetMusicDisplay {
     private resizeHandlerAttached: boolean;
     private followCursor: boolean;
 
+    private isUrl (url: string): boolean {
+        if (url.length < 2083) {
+            return true;
+            /* Nope. Doesn't do it. Still TODO, better URL detection.
+            try {
+                const urlObj: URL = new URL(url);
+                log.debug("[OSMD] found URL, " + urlObj.toString());
+                return true;
+            } catch (ex) {
+                return false;
+            } */
+        } else {
+            return false;
+        }
+    }
+
+    private isMxl (data: string): boolean {
+        if (data.substr(0, 4) === "\x50\x4b\x03\x04") {
+            return true;
+        }
+        return false;
+    }
+
+    private processMxl (data: string, resolveContentPromise: (value?: Document) => void, rejectContentPromise: (reason?: any) => void): void {
+        MXLHelper.MXLtoXMLstring(data).then(
+            (x: string) => {
+                resolveContentPromise(this.processStringXml(x));
+            },
+            (err: any) => {
+                log.error(new Error("[OSMD] Invalid MXL file: " + err));
+                rejectContentPromise(new Error("[OSMD] Invalid MXL file: " + err));
+            }
+        );
+    }
+
+    private processStringXml (xmlString: string): Document {
+        const parser: DOMParser = new DOMParser();
+        // Javascript loads strings as utf-16, which is wonderful BS if you want to parse UTF-8 :S
+        if (xmlString.substr(0, 3) === "\uf7ef\uf7bb\uf7bf") {
+            log.debug("[OSMD] UTF with BOM detected, truncate first three bytes and pass along: " + xmlString);
+            // UTF with BOM detected, truncate first three bytes and pass along
+            return parser.parseFromString(xmlString.substr(3), "application/xml");
+        }
+        if (xmlString.substr(0, 6).includes("<?xml")) {
+            log.debug("[OSMD] Finally parsing XML content, length: " + xmlString.length);
+            // Parse the string representing an xml file
+            return parser.parseFromString(xmlString, "application/xml");
+        }
+    }
+
+
     /**
      * Load a MusicXML file
      * @param content is either the url of a file, or the root node of a MusicXML document, or the string content of a .xml/.mxl file
@@ -102,29 +153,17 @@ export class OpenSheetMusicDisplay {
                             function(resolveCommentPromise: (commentPromiseVal?: Document) => void,
                                      rejectCommentPromise: (commentRejectReason?: any) => void): void {
                                 if (typeof comment === "string") {
-                                    const parser: DOMParser = new DOMParser();
-                                    const str: string = <string>comment;
-                                    // Javascript loads strings as utf-16, which is wonderful BS if you want to parse UTF-8 :S
-                                    if (str.substr(0, 3) === "\uf7ef\uf7bb\uf7bf") {
-                                        log.debug("[OSMD] UTF with BOM detected, truncate first three bytes and pass along: " + str);
-                                        // UTF with BOM detected, truncate first three bytes and pass along
-                                        resolveCommentPromise(parser.parseFromString(str.substr(3), "application/xml"));
-                                    }
-                                    let trimmedCommentStr: string = str;
-                                    if (/^\s/.test(trimmedCommentStr)) { // only trim if we need to. (end of string is irrelevant)
-                                        trimmedCommentStr = trimmedCommentStr.trim(); // trim away empty lines at beginning etc
-                                    }// first character is sometimes null, making first five characters '<?xm'.
-                                    if (trimmedCommentStr.substr(0, 6).includes("<?xml")) {
-                                        log.debug("[OSMD] Finally parsing XML content, length: " + trimmedCommentStr.length);
-                                        // Parse the string representing an xml file
-                                        resolveCommentPromise(parser.parseFromString(trimmedCommentStr, "application/xml"));
-                                    } else if (trimmedCommentStr.length < 2083) { // TODO do proper URL format check
-                                        log.debug("[OSMD] Retrieve the file at the given URL: " + trimmedCommentStr);
+                                    const str: string = <string>comment.trim();
+                                    const processedXmlDoc: Document = self.processStringXml(str);
+                                    if (processedXmlDoc) {
+                                        resolveCommentPromise(processedXmlDoc);
+                                    } else if (self.isUrl(str)) {
+                                        log.debug("[OSMD] Retrieve the file at the given URL: " + str);
                                         // Assume now "str" is a URL
                                         // Retrieve the file at the given URL
-                                        AJAX.ajax(trimmedCommentStr).then(
+                                        AJAX.ajax(str).then(
                                             (commentS: string) => {
-                                                resolveCommentPromise(parser.parseFromString(commentS, "application/xml"));
+                                                resolveCommentPromise(self.processStringXml(commentS));
                                             },
                                             (exception: Error) => {
                                                 console.log("Error loading comment file.", exception);
@@ -133,8 +172,14 @@ export class OpenSheetMusicDisplay {
                                             }
                                         );
                                     } else {
-                                        console.error("[OSMD] osmd.load(string): Could not process comment string. Did not find <?xml at beginning.");
-                                        resolveCommentPromise(undefined);
+                                        const processedXml: Document = self.processStringXml(str);
+                                        if (!processedXml) {
+                                            console.error("[OSMD] osmd.load(string): Could not process comment string. Did not find <?xml at beginning.");
+                                            resolveCommentPromise(undefined);
+                                        } else {
+                                            resolveCommentPromise(processedXml);
+                                        }
+
                                     }
                                 } else if (comment instanceof Document) {
                                     resolveCommentPromise(comment);
@@ -161,49 +206,31 @@ export class OpenSheetMusicDisplay {
                 function(resolveContentPromise: (value?: Document) => void, rejectContentPromise: (reason?: any) => void): void {
                 //console.log("typeof content: " + typeof content);
                 if (typeof content === "string") {
-                    const parser: DOMParser = new DOMParser();
-                    const str: string = <string>content;
-                    // console.log("substring: " + str.substr(0, 5));
-                    if (str.substr(0, 4) === "\x50\x4b\x03\x04") {
+                    const str: string = <string>content.trim();
+                    if (self.isMxl(str)) {
                         log.debug("[OSMD] This is a zip file, unpack it first: " + str);
                         // This is a zip file, unpack it first
-                        MXLHelper.MXLtoXMLstring(str).then(
-                            (x: string) => {
-                                resolveContentPromise(parser.parseFromString(x, "application/xml"));
-                            },
-                            (err: any) => {
-                                log.error(err);
-                                rejectContentPromise(err);
-                                throw new Error("OpenSheetMusicDisplay: Invalid MXL file");
-                            }
-                        );
-                    }
-                    // Javascript loads strings as utf-16, which is wonderful BS if you want to parse UTF-8 :S
-                    if (str.substr(0, 3) === "\uf7ef\uf7bb\uf7bf") {
-                        log.debug("[OSMD] UTF with BOM detected, truncate first three bytes and pass along: " + str);
-                        // UTF with BOM detected, truncate first three bytes and pass along
-                        parser.parseFromString(str.substr(3), "application/xml");
-                    }
-                    let trimmedStr: string = str;
-                    if (/^\s/.test(trimmedStr)) { // only trim if we need to. (end of string is irrelevant)
-                        trimmedStr = trimmedStr.trim(); // trim away empty lines at beginning etc
-                    }
-                    if (trimmedStr.substr(0, 6).includes("<?xml")) { // first character is sometimes null, making first five characters '<?xm'.
-                        log.debug("[OSMD] Finally parsing XML content, length: " + trimmedStr.length);
-                        // Parse the string representing an xml file
-                        resolveContentPromise(parser.parseFromString(trimmedStr, "application/xml"));
-                    } else if (trimmedStr.length < 2083) { // TODO do proper URL format check
-                        log.debug("[OSMD] Retrieve the file at the given URL: " + trimmedStr);
-                        // Assume now "str" is a URL
-                        // Retrieve the file at the given URL
-                        AJAX.ajax(trimmedStr).then(
-                            (s: string) => { resolveContentPromise(parser.parseFromString(s, "application/xml")); },
-                            (exc: Error) => { rejectContentPromise(exc); throw exc; }
-                        );
+                        self.processMxl(str, resolveContentPromise, rejectContentPromise);
                     } else {
-                        const err: Error = new Error("[OSMD] osmd.load(string): Could not process string. Did not find <?xml at beginning.");
-                        console.error(err.message);
-                        rejectContentPromise(err);
+                        const processedXmlDoc: Document = self.processStringXml(str);
+                        if (processedXmlDoc) {
+                            resolveContentPromise(processedXmlDoc);
+                        } else if (self.isUrl(str)) {
+                            AJAX.ajax(str).then(
+                                (s: string) => {
+                                    if (self.isMxl(s)) {
+                                        self.processMxl(s, resolveContentPromise, rejectContentPromise);
+                                    } else {
+                                        resolveContentPromise(self.processStringXml(s));
+                                    }
+                                },
+                                (exc: Error) => { rejectContentPromise(exc); throw exc; }
+                            );
+                        } else {
+                            const err: Error = new Error("[OSMD] osmd.load(string): Could not process string. Did not find <?xml at beginning.");
+                            console.error(err.message);
+                            rejectContentPromise(err);
+                        }
                     }
                 } else if (content instanceof Document) {
                     resolveContentPromise(content);
@@ -278,14 +305,6 @@ export class OpenSheetMusicDisplay {
         if (this.drawingParameters.drawCursors && this.cursor) {
             this.cursor.init(this.sheet.MusicPartManager, this.graphic);
         }
-
-        if (this.drawingParameters.drawComments) {
-            this.container.addEventListener("mousedown", ev => {
-                console.log(ev);
-                const obj: any = this.graphic.getClickedObject(new PointF2D(ev.offsetX / 10, ev.offsetY / 10));
-                console.log(obj);
-            });
-        }
     }
 
     /**
@@ -353,6 +372,17 @@ export class OpenSheetMusicDisplay {
         }
         this.zoomUpdated = false;
         //console.log("[OSMD] render finished");
+        if (this.drawingParameters.drawComments) {
+            this.container.addEventListener("mousedown", ev => {
+                //get each time in case of screen size changes
+                const containerRect: DOMRect = this.container.getBoundingClientRect();
+                const clickedX: number = (ev.x - containerRect.x) / 10;
+                const clickedY: number = (ev.y - containerRect.y) / 10;
+                console.log("clicked at: x" + clickedX + " y" + clickedY);
+                const obj: any = this.graphic.GetNearestStaffEntry(new PointF2D(clickedX, clickedY));
+                console.log(obj);
+            });
+        }
     }
 
     public serializeComments(): string {

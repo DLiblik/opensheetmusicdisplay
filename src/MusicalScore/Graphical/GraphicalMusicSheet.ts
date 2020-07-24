@@ -574,7 +574,7 @@ export class GraphicalMusicSheet {
         region.BorderTop = clickPosition.y - initialSearchArea;
         region.BorderRight = clickPosition.x + initialSearchArea;
         region.BorderBottom = clickPosition.y + initialSearchArea;
-        region.AbsolutePosition = new PointF2D(0, 0);
+        region.AbsolutePosition = new PointF2D(clickPosition.x, clickPosition.y);
         // Search for StaffEntries in region
         for (let idx: number = 0, len: number = this.MusicPages.length; idx < len; ++idx) {
             const graphicalMusicPage: GraphicalMusicPage = this.MusicPages[idx];
