@@ -285,7 +285,8 @@ export class OpenSheetMusicDisplay {
                     }
                     self.needBackendUpdate = true;
                     self.updateGraphic(commentReaders);
-                }).finally(function(): void {
+                    mainResolve();
+                }).catch(function(): void {
                     mainResolve();
                 });
             }).catch(function(reason: any): void {
