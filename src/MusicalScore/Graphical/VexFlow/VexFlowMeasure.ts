@@ -104,9 +104,11 @@ export class VexFlowMeasure extends GraphicalMeasure {
         // TODO save beginning and end bar type, set these again after new stave.
 
         this.stave = new Vex.Flow.Stave(0, 0, 0, {
+            fill_style: this.rules.StaffLineColor,
             space_above_staff_ln: 0,
             space_below_staff_ln: 0
         });
+        // also see VexFlowMusicSheetDrawer.drawSheet() for some other vexflow default value settings (like default font scale)
 
         if (this.ParentStaff) {
             this.setLineNumber(this.ParentStaff.StafflineCount);
@@ -270,11 +272,45 @@ export class VexFlowMeasure extends GraphicalMeasure {
         this.updateInstructionWidth();
     }
 
-    public addMeasureLine(lineType: SystemLinesEnum, linePosition: SystemLinePosition): void {
+    // Render initial line is whether or not to render a single bar line at the beginning (if the repeat line we are drawing is
+    // offset by a clef, for ex.)
+    public addMeasureLine(lineType: SystemLinesEnum, linePosition: SystemLinePosition, renderInitialLine: boolean = true): void {
         switch (linePosition) {
             case SystemLinePosition.MeasureBegin:
                 switch (lineType) {
                     case SystemLinesEnum.BoldThinDots:
+                        //customize the barline draw function if repeat is beginning of system
+                        if (!renderInitialLine) {
+                            (this.stave as any).modifiers[0].draw = function(stave: Vex.Flow.Stave): void {
+                                (stave as any).checkContext();
+                                this.setRendered();
+                                switch (this.type) {
+                                    case Vex.Flow.Barline.type.SINGLE:
+                                    this.drawVerticalBar(stave, this.x, false);
+                                    break;
+                                    case Vex.Flow.Barline.type.DOUBLE:
+                                    this.drawVerticalBar(stave, this.x, true);
+                                    break;
+                                    case Vex.Flow.Barline.type.END:
+                                    this.drawVerticalEndBar(stave, this.x);
+                                    break;
+                                    case Vex.Flow.Barline.type.REPEAT_BEGIN:
+                                    //removed the vertical line rendering that exists in VF codebase
+                                    this.drawRepeatBar(stave, this.x, true);
+                                    break;
+                                    case Vex.Flow.Barline.type.REPEAT_END:
+                                    this.drawRepeatBar(stave, this.x, false);
+                                    break;
+                                    case Vex.Flow.Barline.type.REPEAT_BOTH:
+                                    this.drawRepeatBar(stave, this.x, false);
+                                    this.drawRepeatBar(stave, this.x, true);
+                                    break;
+                                    default:
+                                    // Default is NONE, so nothing to draw
+                                    break;
+                                }
+                            };
+                        }
                         this.stave.setBegBarType(Vex.Flow.Barline.type.REPEAT_BEGIN);
                         break;
                     default:
