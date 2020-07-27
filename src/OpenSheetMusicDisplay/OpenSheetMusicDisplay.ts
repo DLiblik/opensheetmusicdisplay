@@ -18,7 +18,7 @@ import { EngravingRules, PageFormat } from "../MusicalScore/Graphical/EngravingR
 import { AbstractExpression } from "../MusicalScore/VoiceData/Expressions/AbstractExpression";
 import { Dictionary } from "typescript-collections";
 import { NoteEnum } from "..";
-import { AutoColorSet, GraphicalMusicPage } from "../MusicalScore";
+import { AutoColorSet, GraphicalMusicPage, GraphicalStaffEntry, GraphicalVoiceEntry } from "../MusicalScore";
 import { MusicPartManagerIterator } from "../MusicalScore/MusicParts";
 import { ITransposeCalculator } from "../MusicalScore/Interfaces";
 import { OSMDCommentReaderCalculator } from "../MusicalScore/ScoreIO/OSMDCommentReaderCalculator";
@@ -286,7 +286,7 @@ export class OpenSheetMusicDisplay {
                     self.needBackendUpdate = true;
                     self.updateGraphic(commentReaders);
                     mainResolve();
-                }).catch(function(): void {
+                }).catch(function(): void { //Since travis CI doesn't like finally, need to do this
                     mainResolve();
                 });
             }).catch(function(reason: any): void {
@@ -373,6 +373,10 @@ export class OpenSheetMusicDisplay {
         }
         this.zoomUpdated = false;
         //console.log("[OSMD] render finished");
+    }
+
+    //TODO: based on option?
+    public createCommentModeOn(): void {
         if (this.drawingParameters.drawComments) {
             this.container.addEventListener("mousedown", ev => {
                 //get each time in case of screen size changes
@@ -380,8 +384,17 @@ export class OpenSheetMusicDisplay {
                 const clickedX: number = (ev.x - containerRect.x) / 10;
                 const clickedY: number = (ev.y - containerRect.y) / 10;
                 console.log("clicked at: x" + clickedX + " y" + clickedY);
-                const obj: any = this.graphic.GetNearestStaffEntry(new PointF2D(clickedX, clickedY));
-                console.log(obj);
+                const staffEntry: GraphicalStaffEntry = this.graphic.GetNearestStaffEntry(new PointF2D(clickedX, clickedY));
+                console.log("clicked staffEntry", staffEntry);
+                if (staffEntry instanceof GraphicalVoiceEntry) {
+                    console.log("staffEntry timestamp: " + staffEntry.parentStaffEntry.getAbsoluteTimestamp().toString());
+                    for (const note of staffEntry.notes) {
+                        note.sourceNote.NoteheadColor = "#ff0000";
+                        note.sourceNote.StemColorXml = "#ff0000";
+                        console.log("clicked note: ", note.sourceNote.isRest() ? "rest" : note.sourceNote.Pitch.ToString());
+                    }
+                    staffEntry.color();
+                }
             });
         }
     }

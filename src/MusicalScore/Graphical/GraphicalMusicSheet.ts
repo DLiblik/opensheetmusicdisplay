@@ -566,27 +566,32 @@ export class GraphicalMusicSheet {
     }
 
     public GetNearestStaffEntry(clickPosition: PointF2D): GraphicalStaffEntry {
-        const initialSearchArea: number = 10;
+        let initialSearchArea: number = 1;
         const foundEntries: GraphicalStaffEntry[] = [];
-        // Prepare search area
-        const region: BoundingBox = new BoundingBox(undefined);
-        region.BorderLeft = clickPosition.x - initialSearchArea;
-        region.BorderTop = clickPosition.y - initialSearchArea;
-        region.BorderRight = clickPosition.x + initialSearchArea;
-        region.BorderBottom = clickPosition.y + initialSearchArea;
-        region.AbsolutePosition = new PointF2D(clickPosition.x, clickPosition.y);
-        // Search for StaffEntries in region
-        for (let idx: number = 0, len: number = this.MusicPages.length; idx < len; ++idx) {
-            const graphicalMusicPage: GraphicalMusicPage = this.MusicPages[idx];
-            const entries: GraphicalStaffEntry[] = graphicalMusicPage.PositionAndShape.getObjectsInRegion<GraphicalStaffEntry>(region, false);
-            if (!entries || entries.length === 0) {
-                continue;
-            } else {
-                for (let idx2: number = 0, len2: number = entries.length; idx2 < len2; ++idx2) {
-                    const gse: GraphicalStaffEntry = entries[idx2];
-                    foundEntries.push(gse);
+        //search up to 10 units away
+        while (foundEntries.length === 0 && initialSearchArea < 10) {
+            // Prepare search area
+            const region: BoundingBox = new BoundingBox(undefined);
+            region.BorderLeft = clickPosition.x - initialSearchArea;
+            region.BorderTop = clickPosition.y - initialSearchArea;
+            region.BorderRight = clickPosition.x + initialSearchArea;
+            region.BorderBottom = clickPosition.y + initialSearchArea;
+            region.AbsolutePosition = new PointF2D(clickPosition.x, clickPosition.y);
+            region.calculateAbsolutePosition();
+            // Search for StaffEntries in region
+            for (let idx: number = 0, len: number = this.MusicPages.length; idx < len; ++idx) {
+                const graphicalMusicPage: GraphicalMusicPage = this.MusicPages[idx];
+                const entries: GraphicalStaffEntry[] = graphicalMusicPage.PositionAndShape.getObjectsInRegion<GraphicalStaffEntry>(region, false);
+                if (!entries || entries.length === 0) {
+                    continue;
+                } else {
+                    for (let idx2: number = 0, len2: number = entries.length; idx2 < len2; ++idx2) {
+                        const gse: GraphicalStaffEntry = entries[idx2];
+                        foundEntries.push(gse);
+                    }
                 }
             }
+            initialSearchArea++;
         }
         // Get closest entry
         let closest: GraphicalStaffEntry = undefined;

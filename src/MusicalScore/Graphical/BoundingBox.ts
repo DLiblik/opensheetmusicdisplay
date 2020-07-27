@@ -573,9 +573,9 @@ export class BoundingBox {
     }
 
     public getObjectsInRegion<T>(region: BoundingBox, liesInside: boolean = true): T[] {
-        const result: T[] = [];
+        let result: T[] = [];
         for (const child of this.childElements) {
-            result.concat(child.getObjectsInRegion<T>(region, liesInside));
+            result = result.concat(child.getObjectsInRegion<T>(region, liesInside));
         }
 
         if (!result || result.length === 0) {
