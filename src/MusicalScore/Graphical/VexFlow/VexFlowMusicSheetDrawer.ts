@@ -50,6 +50,10 @@ export class VexFlowMusicSheetDrawer extends MusicSheetDrawer {
         return this.backends;
     }
 
+    public initializeForDrawingPage(page: GraphicalMusicPage): void {
+        this.backend = this.backends[page.PageNumber - 1];
+    }
+
     public drawSheet(graphicalMusicSheet: GraphicalMusicSheet): void {
         // vexflow 3.x: change default font
         if (this.rules.DefaultVexFlowNoteFont === "gonville") {

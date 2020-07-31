@@ -8,3 +8,11 @@ export enum FontStyles {
     BoldItalic = 3,
     Underlined = 4
 }
+
+export const FontStyleString: Object = {
+    Bold: 1,
+    BoldItalic: 3,
+    Italic: 2,
+    Regular: 0,
+    Underlined: 4
+};

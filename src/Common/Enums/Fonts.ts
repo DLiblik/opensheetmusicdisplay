@@ -5,3 +5,8 @@ export enum Fonts {
     TimesNewRoman,
     Kokila
 }
+
+export const FontString: Object = {
+    Kokila: 1,
+    TimesNewRoman: 0
+};

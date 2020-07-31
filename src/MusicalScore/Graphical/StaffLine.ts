@@ -33,7 +33,7 @@ export abstract class StaffLine extends GraphicalObject {
     private staffHeight: number;
     private topLineOffset: number;
     private bottomLineOffset: number;
-    private graphicalComments: GraphicalComment[] = [];
+    public GraphicalComments: GraphicalComment[] = [];
 
     // For displaying Slurs
     protected graphicalSlurs: GraphicalSlur[] = [];
@@ -51,13 +51,6 @@ export abstract class StaffLine extends GraphicalObject {
         this.calculateStaffLineOffsets();
     }
 
-    public get GraphicalComments(): GraphicalComment[] {
-        return this.graphicalComments;
-    }
-
-    public set GraphicalComments(comments: GraphicalComment[]) {
-        this.graphicalComments = comments;
-    }
     /**
      * If the musicXML sets different numbers of stafflines, we need to have different offsets
      * to accomodate this - primarily for the sky and bottom lines and cursor.
@@ -243,7 +236,7 @@ export abstract class StaffLine extends GraphicalObject {
         return closestStaffentry;
     }
 
-    public SerializeCommentsXML(document: XMLDocument, myIndex: number): Node {
+    public SerializeAnnotationsXML(document: XMLDocument, myIndex: number): Node {
         if (!this.GraphicalComments || this.GraphicalComments.length === 0) {
             return undefined;
         }

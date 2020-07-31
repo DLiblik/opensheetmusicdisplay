@@ -23,17 +23,19 @@ import {CollectionUtil} from "../../Util/CollectionUtil";
 import {SelectionStartSymbol} from "./SelectionStartSymbol";
 import {SelectionEndSymbol} from "./SelectionEndSymbol";
 import {OutlineAndFillStyleEnum} from "./DrawingEnums";
-import { OSMDCommentReaderCalculator } from "../ScoreIO/OSMDCommentReaderCalculator";
+import { GraphicalComment, StaffLine } from ".";
+import { GraphicalVoiceEntry } from "./GraphicalVoiceEntry";
+import { AnnotationsSheet } from "./AnnotationsSheet";
 
 /**
  * The graphical counterpart of a [[MusicSheet]]
  */
 export class GraphicalMusicSheet {
-    constructor(musicSheet: MusicSheet, calculator: MusicSheetCalculator, commentCalculators: OSMDCommentReaderCalculator[] = undefined) {
+    constructor(musicSheet: MusicSheet, calculator: MusicSheetCalculator, annotationSheets: AnnotationsSheet[] = undefined) {
         this.musicSheet = musicSheet;
         this.numberOfStaves = this.musicSheet.Staves.length;
         this.calculator = calculator;
-        this.calculator.initialize(this, commentCalculators);
+        this.calculator.initialize(this, annotationSheets);
     }
 
     private musicSheet: MusicSheet;
@@ -183,6 +185,11 @@ export class GraphicalMusicSheet {
 
     public prepare(): void {
         this.calculator.prepareGraphicalMusicSheet();
+    }
+
+    public AddComment(graphicalComment: GraphicalComment, parentStaffline: StaffLine = graphicalComment.ParentStaffline): void {
+        //const addedComment: GraphicalComment = this.calculator.calculateComment(parentStaffline, graphicalComment);
+        parentStaffline.GraphicalComments.push(graphicalComment);
     }
 
     public EnforceRedrawOfMusicSystems(): void {
@@ -565,9 +572,9 @@ export class GraphicalMusicSheet {
         return undefined;
     }
 
-    public GetNearestStaffEntry(clickPosition: PointF2D): GraphicalStaffEntry {
+    public GetNearestVoiceEntry(clickPosition: PointF2D): GraphicalVoiceEntry {
         let initialSearchArea: number = 1;
-        const foundEntries: GraphicalStaffEntry[] = [];
+        const foundEntries: GraphicalVoiceEntry[] = [];
         //search up to 10 units away
         while (foundEntries.length === 0 && initialSearchArea < 10) {
             // Prepare search area
@@ -581,26 +588,28 @@ export class GraphicalMusicSheet {
             // Search for StaffEntries in region
             for (let idx: number = 0, len: number = this.MusicPages.length; idx < len; ++idx) {
                 const graphicalMusicPage: GraphicalMusicPage = this.MusicPages[idx];
-                const entries: GraphicalStaffEntry[] = graphicalMusicPage.PositionAndShape.getObjectsInRegion<GraphicalStaffEntry>(region, false);
+                const entries: GraphicalVoiceEntry[] = graphicalMusicPage.PositionAndShape.getObjectsInRegion<GraphicalVoiceEntry>(region, false);
                 if (!entries || entries.length === 0) {
                     continue;
                 } else {
                     for (let idx2: number = 0, len2: number = entries.length; idx2 < len2; ++idx2) {
-                        const gse: GraphicalStaffEntry = entries[idx2];
-                        foundEntries.push(gse);
+                        const gse: GraphicalVoiceEntry = entries[idx2];
+                        if (gse instanceof GraphicalVoiceEntry) {
+                            foundEntries.push(gse);
+                        }
                     }
                 }
             }
             initialSearchArea++;
         }
         // Get closest entry
-        let closest: GraphicalStaffEntry = undefined;
+        let closest: GraphicalVoiceEntry = undefined;
         for (let idx: number = 0, len: number = foundEntries.length; idx < len; ++idx) {
-            const gse: GraphicalStaffEntry = foundEntries[idx];
+            const gse: GraphicalVoiceEntry = foundEntries[idx];
             if (closest === undefined) {
                 closest = gse;
             } else {
-                if (!gse.relInMeasureTimestamp) {
+                if (!gse.parentStaffEntry.relInMeasureTimestamp) {
                     continue;
                 }
                 const deltaNew: number = this.CalculateDistance(gse.PositionAndShape.AbsolutePosition, clickPosition);
@@ -619,11 +628,11 @@ export class GraphicalMusicSheet {
     }
 
     public GetPossibleCommentAnchor(clickPosition: PointF2D): SourceStaffEntry {
-        const entry: GraphicalStaffEntry = this.GetNearestStaffEntry(clickPosition);
+        const entry: GraphicalVoiceEntry = this.GetNearestVoiceEntry(clickPosition);
         if (!entry) {
             return undefined;
         }
-        return entry.sourceStaffEntry;
+        return entry.parentStaffEntry.sourceStaffEntry;
     }
 
     public getClickedObjectOfType<T>(positionOnMusicSheet: PointF2D): T {
@@ -657,11 +666,11 @@ export class GraphicalMusicSheet {
 
     public tryGetTimeStampFromPosition(positionOnMusicSheet: PointF2D): Fraction {
         try {
-            const entry: GraphicalStaffEntry = this.GetNearestStaffEntry(positionOnMusicSheet);
+            const entry: GraphicalVoiceEntry = this.GetNearestVoiceEntry(positionOnMusicSheet);
             if (!entry) {
                 return undefined;
             }
-            return entry.getAbsoluteTimestamp();
+            return entry.parentStaffEntry.getAbsoluteTimestamp();
         } catch (ex) {
             log.info(
                 "GraphicalMusicSheet.tryGetTimeStampFromPosition",
@@ -919,9 +928,9 @@ export class GraphicalMusicSheet {
         return maxLength;
     }
 
-    public SerializeCommentsXML(document: XMLDocument): Node {
+    public SerializeAnnotationsXML(document: XMLDocument): Node {
         for (let idx: number = 0; idx < this.MusicPages.length; idx++) {
-            this.MusicPages[idx].SerializeCommentsXML(document);
+            this.MusicPages[idx].SerializeAnnotationsXML(document);
         }
         return document;
     }

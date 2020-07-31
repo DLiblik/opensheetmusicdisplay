@@ -5,13 +5,14 @@ import { OSMDColor } from "../../Common/DataObjects/OSMDColor";
 import { FontStyles } from "../../Common/Enums/FontStyles";
 import { Fonts } from "../../Common/Enums/Fonts";
 import { EngravingRules } from "./EngravingRules";
-import { BoundingBox, GraphicalStaffEntry } from "..";
+import { BoundingBox, StaffLine } from "..";
 import { Fraction } from "../../Common";
-import { IXMLSerializable } from "../Interfaces/IXMLSerializable";
+import { GraphicalVoiceEntry } from "./GraphicalVoiceEntry";
+import { IGraphicalAnnotation } from "../Interfaces/IGraphicalAnnotation";
 
-export class GraphicalComment implements IXMLSerializable {
+export class GraphicalComment implements IGraphicalAnnotation {
 
-    private associatedStaffEntry: GraphicalStaffEntry;
+    private associatedVoiceEntry: GraphicalVoiceEntry;
     private graphicalLabel: GraphicalLabel;
     public get GraphicalLabel(): GraphicalLabel {
         return this.graphicalLabel;
@@ -26,26 +27,28 @@ export class GraphicalComment implements IXMLSerializable {
         this.GraphicalLabel.setLabelPositionAndShapeBorders();
     }
     public position: Fraction;
+
+    public get ParentStaffline(): StaffLine {
+        return this.associatedVoiceEntry?.parentStaffEntry?.parentMeasure?.ParentStaffLine;
+    }
     //private stafflineIndex: number;
     //private musicSystemId: number;
 
     //TODO Getters and setters for these? Definitely want options
     constructor(rules: EngravingRules, text: string,
-                associatedStaffEntry: GraphicalStaffEntry = undefined,
-                position: Fraction = associatedStaffEntry?.getAbsoluteTimestamp(),
+                associatedVoiceEntry: GraphicalVoiceEntry = undefined,
+                position: Fraction = associatedVoiceEntry?.parentStaffEntry?.getAbsoluteTimestamp(),
                 fontSize: number = 12, font: Fonts = Fonts.TimesNewRoman,
                 fontColor: OSMDColor = new OSMDColor(255, 0, 0),
                 fontStyle: FontStyles = FontStyles.Regular) {
 
         this.position = position;
-        if (associatedStaffEntry) {
-            this.associatedStaffEntry = associatedStaffEntry;
+        if (associatedVoiceEntry) {
+            this.associatedVoiceEntry = associatedVoiceEntry;
             //TODO: Make this coloring a drawing rule
-            for (const gve of this.associatedStaffEntry.graphicalVoiceEntries) {
-                for (const note of gve.parentVoiceEntry.Notes) {
-                    note.NoteheadColor = fontColor.toString();
-                    note.StemColorXml = fontColor.toString();
-                }
+            for (const note of this.associatedVoiceEntry.parentVoiceEntry.Notes) {
+                note.NoteheadColor = fontColor.toString();
+                note.StemColorXml = fontColor.toString();
             }
         }
         fontSize /= 10;

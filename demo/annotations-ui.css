@@ -1,0 +1,11 @@
+.annotations-ui-container{
+    position:fixed;
+    bottom:0;
+    width:100%;
+    background-color: #FFFFFF;
+    display: none;
+}
+
+.show > .annotations-ui-container{
+    display: block;
+}

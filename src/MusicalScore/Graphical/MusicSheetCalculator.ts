@@ -69,8 +69,8 @@ import { GraphicalContinuousDynamicExpression } from "./GraphicalContinuousDynam
 import { FillEmptyMeasuresWithWholeRests } from "../../OpenSheetMusicDisplay/OSMDOptions";
 import { IStafflineNoteCalculator } from "../Interfaces/IStafflineNoteCalculator";
 import { GraphicalUnknownExpression } from "./GraphicalUnknownExpression";
-import { OSMDCommentReaderCalculator } from "../ScoreIO/OSMDCommentReaderCalculator";
 import { GraphicalComment } from "./GraphicalComment";
+import { AnnotationsSheet } from "./AnnotationsSheet";
 
 /**
  * Class used to do all the calculations in a MusicSheet, which in the end populates a GraphicalMusicSheet.
@@ -89,9 +89,13 @@ export abstract class MusicSheetCalculator {
     protected graphicalLyricWords: GraphicalLyricWord[] = [];
 
     protected graphicalMusicSheet: GraphicalMusicSheet;
-    protected commentCalculators: OSMDCommentReaderCalculator[];
+    protected annotationsSheets: AnnotationsSheet[] = [];
     protected rules: EngravingRules;
     protected musicSystems: MusicSystem[];
+
+    public AddAnnotationSheet(sheetToAdd: AnnotationsSheet): void {
+        this.annotationsSheets.push(sheetToAdd);
+    }
 
     public static get TextMeasurer(): ITextMeasurer {
         return MusicSheetCalculator.textMeasurer;
@@ -114,9 +118,9 @@ export abstract class MusicSheetCalculator {
         }
     }
 
-    public initialize(graphicalMusicSheet: GraphicalMusicSheet, commentCalculators: OSMDCommentReaderCalculator[] = undefined): void {
+    public initialize(graphicalMusicSheet: GraphicalMusicSheet, annotationsSheets: AnnotationsSheet[] = []): void {
         this.graphicalMusicSheet = graphicalMusicSheet;
-        this.commentCalculators = commentCalculators;
+        this.annotationsSheets = annotationsSheets;
         this.rules = graphicalMusicSheet.ParentMusicSheet.Rules;
         this.prepareGraphicalMusicSheet();
         //this.calculate();
@@ -850,39 +854,49 @@ export abstract class MusicSheetCalculator {
     }
 
     protected calculateComments(): void {
-        if (!this.commentCalculators || this.commentCalculators.length === 0) {
+        if (!this.annotationsSheets || this.annotationsSheets.length === 0) {
             return;
         }
-        for (const musicSystem of this.musicSystems) {
-            for (let stafflineIdx: number = 0; stafflineIdx < musicSystem.StaffLines.length; stafflineIdx++) {
-                const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
-                let commentList: GraphicalComment[] = [];
-                for (const commentCalc of this.commentCalculators) {
-                    const currentList: GraphicalComment[] = commentCalc.GetStafflineComments(musicSystem.Id, stafflineIdx, staffline);
-                    if (currentList && currentList.length > 0) {
-                        commentList = commentList.concat(currentList);
+        for (let stafflineIdx: number = 0; stafflineIdx < this.graphicalMusicSheet.NumberOfStaves; stafflineIdx++) {
+            let commentList: GraphicalComment[] = [];
+            for (const annotationSheet of this.annotationsSheets) {
+                const currentList: GraphicalComment[] = annotationSheet.GetCommentListForStaffLine(stafflineIdx);
+                if (currentList && currentList.length > 0) {
+                    commentList = commentList.concat(currentList);
+                }
+            }
+            if (!commentList || commentList.length === 0) {
+                continue;
+            }
+            for (const graphicalComment of commentList) {
+                //loop through music systems, find where comments belong
+                for (const musicSystem of this.musicSystems) {
+                    const systemStart: Fraction = musicSystem.GetSystemsFirstTimeStamp();
+                    const systemEnd: Fraction = musicSystem.GetSystemsLastTimeStamp();
+                    if (graphicalComment.position.gte(systemStart) && graphicalComment.position.lte(systemEnd)) {
+                        const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
+                        staffline.GraphicalComments.push(this.calculateComment(staffline, graphicalComment));
                     }
-                }
-                if (!commentList || commentList.length === 0) {
-                    continue;
-                }
-                staffline.GraphicalComments = commentList;
-                const sbc: SkyBottomLineCalculator = staffline.SkyBottomLineCalculator;
-                for (const graphicalComment of staffline.GraphicalComments) {
-                    const startPositionX: number = this.getRelativeXPositionFromTimestamp(graphicalComment.position);
-                    graphicalComment.PositionAndShape.RelativePosition = new PointF2D(startPositionX, 0);
-                    graphicalComment.setLabelPositionAndShapeBorders();
-                    const commentBB: BoundingBox = graphicalComment.PositionAndShape;
-                    const start: number = commentBB.BorderMarginLeft + commentBB.RelativePosition.x;
-                    const end: number = commentBB.BorderMarginRight + commentBB.RelativePosition.x;
-                    let skylineValue: number = sbc.getSkyLineMinInRange(start, end);
-                    skylineValue -= (commentBB.Size.height + 0.3);
-                    //TODO: Take into account text alignment
-                    commentBB.RelativePosition.y = skylineValue;
-                    sbc.updateSkyLineInRange(start, end, skylineValue);
                 }
             }
         }
+    }
+
+    public calculateComment(staffline: StaffLine, graphicalComment: GraphicalComment): GraphicalComment {
+        graphicalComment.PositionAndShape = new BoundingBox(graphicalComment, staffline.PositionAndShape);
+        const sbc: SkyBottomLineCalculator = staffline.SkyBottomLineCalculator;
+        const startPositionX: number = this.getRelativeXPositionFromTimestamp(graphicalComment.position);
+        graphicalComment.PositionAndShape.RelativePosition = new PointF2D(startPositionX, 0);
+        graphicalComment.setLabelPositionAndShapeBorders();
+        const commentBB: BoundingBox = graphicalComment.PositionAndShape;
+        const start: number = commentBB.BorderMarginLeft + commentBB.RelativePosition.x;
+        const end: number = commentBB.BorderMarginRight + commentBB.RelativePosition.x;
+        let skylineValue: number = sbc.getSkyLineMinInRange(start, end);
+        skylineValue -= (commentBB.Size.height + 0.3);
+        //TODO: Take into account text alignment
+        commentBB.RelativePosition.y = skylineValue;
+        sbc.updateSkyLineInRange(start, end, skylineValue);
+        return graphicalComment;
     }
 
     protected calculateChordSymbols(): void {

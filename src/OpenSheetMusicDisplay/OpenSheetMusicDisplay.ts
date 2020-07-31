@@ -18,11 +18,16 @@ import { EngravingRules, PageFormat } from "../MusicalScore/Graphical/EngravingR
 import { AbstractExpression } from "../MusicalScore/VoiceData/Expressions/AbstractExpression";
 import { Dictionary } from "typescript-collections";
 import { NoteEnum } from "..";
-import { AutoColorSet, GraphicalMusicPage, GraphicalStaffEntry, GraphicalVoiceEntry } from "../MusicalScore";
+import { AutoColorSet, GraphicalMusicPage, GraphicalVoiceEntry } from "../MusicalScore";
 import { MusicPartManagerIterator } from "../MusicalScore/MusicParts";
 import { ITransposeCalculator } from "../MusicalScore/Interfaces";
-import { OSMDCommentReaderCalculator } from "../MusicalScore/ScoreIO/OSMDCommentReaderCalculator";
+import { OSMDCommentReader } from "../MusicalScore/ScoreIO/OSMDCommentReader";
 import { PointF2D } from "../Common/DataObjects/PointF2D";
+import { IAnnotationsManager } from "../MusicalScore/Interfaces/IAnnotationsManager";
+import { OSMDAnnotationsManager } from "../MusicalScore/Graphical/OSMDAnnotationsManager";
+import { AnnotationsSheet } from "../MusicalScore/Graphical/AnnotationsSheet";
+import { IAnnotationsUIHandler } from "../MusicalScore/Interfaces/IAnnotationsUIHandler";
+import { OSMDAnnotationsUIHandler } from "../MusicalScore/Graphical/OSMDAnnotationsUIHandler";
 /**
  * The main class and control point of OpenSheetMusicDisplay.<br>
  * It can display MusicXML sheet music files in an HTML element container.<br>
@@ -70,6 +75,7 @@ export class OpenSheetMusicDisplay {
     private backendType: BackendType;
     private needBackendUpdate: boolean;
     private sheet: MusicSheet;
+    private annotationsSheets: AnnotationsSheet[];
     private drawer: VexFlowMusicSheetDrawer;
     private drawBoundingBox: string;
     private drawSkyLine: boolean;
@@ -270,23 +276,24 @@ export class OpenSheetMusicDisplay {
                 log.info(`[OSMD] Loaded sheet ${self.sheet.TitleString} successfully.`);
 
                 //If we have a comment XML, read it
-                let commentReaders: OSMDCommentReaderCalculator[] = undefined;
+                const commentReader: OSMDCommentReader = new OSMDCommentReader(self.rules);
 
                 //this should resolve no matter what
                 commentsPromise.then(function(commentsList: Document[]): void {
                     if (commentsList && commentsList.length > 0) {
-                        commentReaders = [];
+                        self.annotationsSheets = [];
                         for (const commentXML of commentsList) {
                             if (commentXML) {
-                                const commentReader: OSMDCommentReaderCalculator = new OSMDCommentReaderCalculator(self.rules, commentXML);
-                                commentReaders.push(commentReader);
+                                self.annotationsSheets.push(commentReader.read(commentXML));
                             }
                         }
                     }
                     self.needBackendUpdate = true;
-                    self.updateGraphic(commentReaders);
+                    self.updateGraphic();
                     mainResolve();
-                }).catch(function(): void { //Since travis CI doesn't like finally, need to do this
+                }).catch(function(reason: any): void { //Since travis CI doesn't like finally, need to do this
+                    self.needBackendUpdate = true;
+                    self.updateGraphic();
                     mainResolve();
                 });
             }).catch(function(reason: any): void {
@@ -300,9 +307,9 @@ export class OpenSheetMusicDisplay {
     /**
      * (Re-)creates the graphic sheet from the music sheet
      */
-    public updateGraphic(commentCalculators: OSMDCommentReaderCalculator[] = undefined): void {
+    public updateGraphic(): void {
         const calc: MusicSheetCalculator = new VexFlowMusicSheetCalculator(this.rules);
-        this.graphic = new GraphicalMusicSheet(this.sheet, calc, commentCalculators);
+        this.graphic = new GraphicalMusicSheet(this.sheet, calc, this.annotationsSheets);
         if (this.drawingParameters.drawCursors && this.cursor) {
             this.cursor.init(this.sheet.MusicPartManager, this.graphic);
         }
@@ -373,33 +380,34 @@ export class OpenSheetMusicDisplay {
         }
         this.zoomUpdated = false;
         //console.log("[OSMD] render finished");
+
+        const aManager: IAnnotationsManager = new OSMDAnnotationsManager(this.graphic, this.rules, this.drawer);
+        const aUIHandler: IAnnotationsUIHandler = new OSMDAnnotationsUIHandler(this.container, "annotations-ui.html", this.rules);
+        aManager.initialize(aUIHandler);
+        this.startAnnotationsMode(aManager);
     }
 
     //TODO: based on option?
-    public createCommentModeOn(): void {
+    public startAnnotationsMode(annotationsManager: IAnnotationsManager): void {
         if (this.drawingParameters.drawComments) {
-            this.container.addEventListener("mousedown", ev => {
-                //get each time in case of screen size changes
+            this.container.onmousedown = ev => {
+                //get each time in case of screewn size changes
                 const containerRect: DOMRect = this.container.getBoundingClientRect();
                 const clickedX: number = (ev.x - containerRect.x) / 10;
                 const clickedY: number = (ev.y - containerRect.y) / 10;
-                console.log("clicked at: x" + clickedX + " y" + clickedY);
-                const staffEntry: GraphicalStaffEntry = this.graphic.GetNearestStaffEntry(new PointF2D(clickedX, clickedY));
-                console.log("clicked staffEntry", staffEntry);
-                if (staffEntry instanceof GraphicalVoiceEntry) {
-                    console.log("staffEntry timestamp: " + staffEntry.parentStaffEntry.getAbsoluteTimestamp().toString());
-                    for (const note of staffEntry.notes) {
-                        note.sourceNote.NoteheadColor = "#ff0000";
-                        note.sourceNote.StemColorXml = "#ff0000";
-                        console.log("clicked note: ", note.sourceNote.isRest() ? "rest" : note.sourceNote.Pitch.ToString());
-                    }
-                    staffEntry.color();
+                const absoluteClickLocation: PointF2D = new PointF2D(ev.x, ev.y);
+                const sheetClickLocation: PointF2D = new PointF2D(clickedX, clickedY);
+                //console.log("clicked at: x" + clickedX + " y" + clickedY);
+                const voiceEntry: GraphicalVoiceEntry = this.graphic.GetNearestVoiceEntry(sheetClickLocation);
+                //console.log("clicked staffEntry", voiceEntry);
+                if (voiceEntry) {
+                    annotationsManager.handleClick(absoluteClickLocation, sheetClickLocation, voiceEntry);
                 }
-            });
+            };
         }
     }
 
-    public serializeComments(): string {
+    public serializeAnnotations(): string {
         if (!this.graphic || !this.graphic.MusicPages || this.graphic.MusicPages.length === 0) {
             console.error("[OSMD] Music sheet must be rendered before comments can be serialized");
             return;
@@ -409,14 +417,14 @@ export class OpenSheetMusicDisplay {
         const xmlSeedString: string = "<?xml version='1.0' encoding='UTF-8'?><comments></comments>";
         const parser: DOMParser = new DOMParser();
         let XMLDoc: XMLDocument = parser.parseFromString(xmlSeedString, "text/xml");
-        XMLDoc = this.graphic.SerializeCommentsXML(XMLDoc) as XMLDocument;
+        XMLDoc = this.graphic.SerializeAnnotationsXML(XMLDoc) as XMLDocument;
         const serializer: XMLSerializer = new XMLSerializer();
         comments = serializer.serializeToString(XMLDoc);
         return comments;
     }
 
-    public saveCommentsXML(): void {
-        const blob: Blob = new Blob([this.serializeComments()], {type: "text/xml"});
+    public saveAnnotationsXML(): void {
+        const blob: Blob = new Blob([this.serializeAnnotations()], {type: "text/xml"});
         const url: string = URL.createObjectURL(blob);
         window.open(url, "_blank");
     }

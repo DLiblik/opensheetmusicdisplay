@@ -1,17 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <comments>
-	<system id="0">
-		<staffline id="0">
-			<comment r="255" g="0" b="0" size="14">Sing louder -Manuel
-        	<location num="4" denom="4"/>
-    		</comment>
-    	</staffline>
-    </system>
-	<system id="1">
-		<staffline id="0">
-			<comment r="255" g="0" b="0" size="14">Sing this note more evenly -Manuel
-        	<location num="7" denom="4"/>
-    		</comment>
-    	</staffline>
-    </system>
+	<staffline id="0">
+		<comment r="255" g="0" b="0" size="14" style="Underlined" font="Kokila">Sing louder -Manuel
+		<location num="4" denom="4"/>
+		</comment>
+		<comment r="255" g="0" b="0" size="14">Sing this note more evenly -Manuel
+		<location num="7" denom="4"/>
+		</comment>
+	</staffline>
 </comments>
