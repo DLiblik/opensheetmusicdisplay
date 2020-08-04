@@ -70,7 +70,7 @@ import { FillEmptyMeasuresWithWholeRests } from "../../OpenSheetMusicDisplay/OSM
 import { IStafflineNoteCalculator } from "../Interfaces/IStafflineNoteCalculator";
 import { GraphicalUnknownExpression } from "./GraphicalUnknownExpression";
 import { GraphicalComment } from "./GraphicalComment";
-import { AnnotationsSheet } from "./AnnotationsSheet";
+import { AnnotationsSheet } from "./Annotations/AnnotationsSheet";
 
 /**
  * Class used to do all the calculations in a MusicSheet, which in the end populates a GraphicalMusicSheet.
@@ -873,7 +873,7 @@ export abstract class MusicSheetCalculator {
                 for (const musicSystem of this.musicSystems) {
                     const systemStart: Fraction = musicSystem.GetSystemsFirstTimeStamp();
                     const systemEnd: Fraction = musicSystem.GetSystemsLastTimeStamp();
-                    if (graphicalComment.position.gte(systemStart) && graphicalComment.position.lte(systemEnd)) {
+                    if (graphicalComment.Location.gte(systemStart) && graphicalComment.Location.lte(systemEnd)) {
                         const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
                         staffline.GraphicalComments.push(this.calculateComment(staffline, graphicalComment));
                     }
@@ -885,7 +885,7 @@ export abstract class MusicSheetCalculator {
     public calculateComment(staffline: StaffLine, graphicalComment: GraphicalComment): GraphicalComment {
         graphicalComment.PositionAndShape = new BoundingBox(graphicalComment, staffline.PositionAndShape);
         const sbc: SkyBottomLineCalculator = staffline.SkyBottomLineCalculator;
-        const startPositionX: number = this.getRelativeXPositionFromTimestamp(graphicalComment.position);
+        const startPositionX: number = this.getRelativeXPositionFromTimestamp(graphicalComment.Location);
         graphicalComment.PositionAndShape.RelativePosition = new PointF2D(startPositionX, 0);
         graphicalComment.setLabelPositionAndShapeBorders();
         const commentBB: BoundingBox = graphicalComment.PositionAndShape;

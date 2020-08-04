@@ -1,9 +1,12 @@
-<div class="annotations-ui-container" style="position:fixed;bottom:0;width:100%;">
-    <h1>Comment Prototype</h1>
-    <input type="text" id="comment" placeholder="Comment Text"/>
+<link href="annotations-ui.css" media="all" rel="stylesheet"/>
+<div class="annotations-ui-container">
+    <h5>Add Comment</h5>
     <input type="number" min="0" max="255" id="r" placeholder="Red"/>
     <input type="number" min="0" max="255" id="g" placeholder="Green"/>
     <input type="number" min="0" max="255" id="b" placeholder="Blue"/>
     <input type="number" min="0" max="72" id="font-size" placeholder="Font Size"/>
     <button id="add-comment">Add Comment</button>
+    <button id="cancel">Cancel</button>
 </div>
+<span id="measure-text" style="position:absolute;visibility:hidden;"></span>
+<input id="comment-input" class="hide" type="text" size="1" style="position: absolute;"></input>

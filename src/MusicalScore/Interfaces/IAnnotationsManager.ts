@@ -1,9 +1,9 @@
-import { GraphicalVoiceEntry } from "../Graphical";
-import { IAnnotationsUIHandler } from "./IAnnotationsUIHandler";
-import { PointF2D } from "../../Common/DataObjects/PointF2D";
+import { AnnotationContainer } from "../Graphical/Annotations/AnnotationContainer";
+import { GraphicalComment, GraphicalVoiceEntry } from "..";
+import { PointF2D } from "../../Common/DataObjects";
 
 export interface IAnnotationsManager {
-  initialize(uiController: IAnnotationsUIHandler): void;
-  //When a user clicks on or near a note (Graphical Voice Entry)
-  handleClick(absoluteClickLocation: PointF2D, sheetClickLocation: PointF2D, nearestVoiceEntry: GraphicalVoiceEntry): void;
+  calculateCommentWidth(comment: GraphicalComment): number;
+  getNearestVoiceEntry(sheetLocation: PointF2D): GraphicalVoiceEntry;
+  addStafflineComment(annotation: AnnotationContainer): void;
 }

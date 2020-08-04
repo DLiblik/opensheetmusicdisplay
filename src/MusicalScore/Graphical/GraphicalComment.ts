@@ -13,6 +13,19 @@ import { IGraphicalAnnotation } from "../Interfaces/IGraphicalAnnotation";
 export class GraphicalComment implements IGraphicalAnnotation {
 
     private associatedVoiceEntry: GraphicalVoiceEntry;
+    public get AssociatedVoiceEntry(): GraphicalVoiceEntry {
+        return this.associatedVoiceEntry;
+    }
+    public set AssociatedVoiceEntry(gve: GraphicalVoiceEntry) {
+        this.associatedVoiceEntry = gve;
+        this.Location = this.associatedVoiceEntry.parentStaffEntry.getAbsoluteTimestamp();
+        //TODO: Make this coloring a drawing rule
+        for (const note of this.associatedVoiceEntry.parentVoiceEntry.Notes) {
+            note.NoteheadColor = this.graphicalLabel.Label.color.toString();
+            //note.StemColorXml = fontColor.toString();
+        }
+    }
+    public Location: Fraction;
     private graphicalLabel: GraphicalLabel;
     public get GraphicalLabel(): GraphicalLabel {
         return this.graphicalLabel;
@@ -26,31 +39,38 @@ export class GraphicalComment implements IGraphicalAnnotation {
     public setLabelPositionAndShapeBorders(): void {
         this.GraphicalLabel.setLabelPositionAndShapeBorders();
     }
-    public position: Fraction;
-
     public get ParentStaffline(): StaffLine {
         return this.associatedVoiceEntry?.parentStaffEntry?.parentMeasure?.ParentStaffLine;
     }
-    //private stafflineIndex: number;
-    //private musicSystemId: number;
-
+    public get FontColor(): OSMDColor {
+        return this.graphicalLabel.Label.color;
+    }
+    public set FontColor(color: OSMDColor) {
+        this.graphicalLabel.Label.color = color;
+    }
+    public get FontSize(): number {
+        return this.graphicalLabel.Label.fontHeight * 10;
+    }
+    public set FontSize(fontHeight: number) {
+        this.graphicalLabel.Label.fontHeight = fontHeight / 10;
+    }
+    public get FontStyle(): FontStyles {
+        return this.graphicalLabel.Label.fontStyle;
+    }
+    public set FontStyle(style: FontStyles) {
+        this.graphicalLabel.Label.fontStyle = style;
+    }
+    public get Font(): Fonts {
+        return this.graphicalLabel.Label.font;
+    }
+    public set Font(font: Fonts) {
+        this.graphicalLabel.Label.font = font;
+    }
     //TODO Getters and setters for these? Definitely want options
     constructor(rules: EngravingRules, text: string,
-                associatedVoiceEntry: GraphicalVoiceEntry = undefined,
-                position: Fraction = associatedVoiceEntry?.parentStaffEntry?.getAbsoluteTimestamp(),
                 fontSize: number = 12, font: Fonts = Fonts.TimesNewRoman,
                 fontColor: OSMDColor = new OSMDColor(255, 0, 0),
                 fontStyle: FontStyles = FontStyles.Regular) {
-
-        this.position = position;
-        if (associatedVoiceEntry) {
-            this.associatedVoiceEntry = associatedVoiceEntry;
-            //TODO: Make this coloring a drawing rule
-            for (const note of this.associatedVoiceEntry.parentVoiceEntry.Notes) {
-                note.NoteheadColor = fontColor.toString();
-                note.StemColorXml = fontColor.toString();
-            }
-        }
         fontSize /= 10;
         const innerLabel: Label = new Label(text, TextAlignmentEnum.LeftTop, font, true);
         innerLabel.fontHeight = fontSize;
@@ -65,8 +85,12 @@ export class GraphicalComment implements IGraphicalAnnotation {
         const textNode: Node = document.createTextNode(this.graphicalLabel.Label.text);
         node.appendChild(textNode);
         const locNode: HTMLElement = document.createElement("location");
-        locNode.setAttribute("num", this.position.Numerator.toString());
-        locNode.setAttribute("denom", this.position.Denominator.toString());
+        locNode.setAttribute("num", this.Location.Numerator.toString());
+        locNode.setAttribute("denom", this.Location.Denominator.toString());
+        const whole: number = this.Location.WholeValue;
+        if (whole > 0) {
+            locNode.setAttribute("whole", whole.toString());
+        }
         node.appendChild(locNode);
         node.setAttribute("r", color.red.toString());
         node.setAttribute("g", color.green.toString());

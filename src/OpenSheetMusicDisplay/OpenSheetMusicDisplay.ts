@@ -18,16 +18,14 @@ import { EngravingRules, PageFormat } from "../MusicalScore/Graphical/EngravingR
 import { AbstractExpression } from "../MusicalScore/VoiceData/Expressions/AbstractExpression";
 import { Dictionary } from "typescript-collections";
 import { NoteEnum } from "..";
-import { AutoColorSet, GraphicalMusicPage, GraphicalVoiceEntry } from "../MusicalScore";
+import { AutoColorSet, GraphicalMusicPage } from "../MusicalScore";
 import { MusicPartManagerIterator } from "../MusicalScore/MusicParts";
 import { ITransposeCalculator } from "../MusicalScore/Interfaces";
 import { OSMDCommentReader } from "../MusicalScore/ScoreIO/OSMDCommentReader";
-import { PointF2D } from "../Common/DataObjects/PointF2D";
-import { IAnnotationsManager } from "../MusicalScore/Interfaces/IAnnotationsManager";
-import { OSMDAnnotationsManager } from "../MusicalScore/Graphical/OSMDAnnotationsManager";
-import { AnnotationsSheet } from "../MusicalScore/Graphical/AnnotationsSheet";
+import { OSMDAnnotationsManager } from "../MusicalScore/Graphical/Annotations/OSMDAnnotationsManager";
+import { AnnotationsSheet } from "../MusicalScore/Graphical/Annotations/AnnotationsSheet";
 import { IAnnotationsUIHandler } from "../MusicalScore/Interfaces/IAnnotationsUIHandler";
-import { OSMDAnnotationsUIHandler } from "../MusicalScore/Graphical/OSMDAnnotationsUIHandler";
+import { OSMDAnnotationsUIHandler } from "../MusicalScore/Graphical/Annotations/OSMDAnnotationsUIHandler";
 /**
  * The main class and control point of OpenSheetMusicDisplay.<br>
  * It can display MusicXML sheet music files in an HTML element container.<br>
@@ -380,30 +378,15 @@ export class OpenSheetMusicDisplay {
         }
         this.zoomUpdated = false;
         //console.log("[OSMD] render finished");
-
-        const aManager: IAnnotationsManager = new OSMDAnnotationsManager(this.graphic, this.rules, this.drawer);
-        const aUIHandler: IAnnotationsUIHandler = new OSMDAnnotationsUIHandler(this.container, "annotations-ui.html", this.rules);
-        aManager.initialize(aUIHandler);
-        this.startAnnotationsMode(aManager);
+        this.startAnnotationsMode();
     }
 
     //TODO: based on option?
-    public startAnnotationsMode(annotationsManager: IAnnotationsManager): void {
+    public startAnnotationsMode(): void {
+        const aManager: OSMDAnnotationsManager = new OSMDAnnotationsManager(this.graphic, this.rules, this.drawer);
+        const aUIHandler: IAnnotationsUIHandler = new OSMDAnnotationsUIHandler(this.container, "annotations-ui.html", this.rules, aManager);
         if (this.drawingParameters.drawComments) {
-            this.container.onmousedown = ev => {
-                //get each time in case of screewn size changes
-                const containerRect: DOMRect = this.container.getBoundingClientRect();
-                const clickedX: number = (ev.x - containerRect.x) / 10;
-                const clickedY: number = (ev.y - containerRect.y) / 10;
-                const absoluteClickLocation: PointF2D = new PointF2D(ev.x, ev.y);
-                const sheetClickLocation: PointF2D = new PointF2D(clickedX, clickedY);
-                //console.log("clicked at: x" + clickedX + " y" + clickedY);
-                const voiceEntry: GraphicalVoiceEntry = this.graphic.GetNearestVoiceEntry(sheetClickLocation);
-                //console.log("clicked staffEntry", voiceEntry);
-                if (voiceEntry) {
-                    annotationsManager.handleClick(absoluteClickLocation, sheetClickLocation, voiceEntry);
-                }
-            };
+            aUIHandler.initialize();
         }
     }
 

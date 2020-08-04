@@ -1,4 +1,4 @@
-import { GraphicalComment } from "../Graphical/GraphicalComment";
+import { GraphicalComment } from "../GraphicalComment";
 import Dictionary from "typescript-collections/dist/lib/Dictionary";
 
 export class AnnotationsSheet {

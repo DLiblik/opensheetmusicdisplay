@@ -3,7 +3,7 @@ import { Fraction, FontStyleString } from "../../Common";
 import { EngravingRules } from "../Graphical/EngravingRules";
 import { OSMDColor } from "../../Common/DataObjects";
 import { FontString } from "../../Common/Enums/Fonts";
-import { AnnotationsSheet } from "../Graphical/AnnotationsSheet";
+import { AnnotationsSheet } from "../Graphical/Annotations/AnnotationsSheet";
 
 export class OSMDCommentReader {
     private rules: EngravingRules;
@@ -90,8 +90,8 @@ export class OSMDCommentReader {
         const text: string = node.textContent.trim();
 
         const timestamp: Fraction = new Fraction(num, denom, whole);
-        comment = new GraphicalComment(this.rules, text, undefined, timestamp, size, font, new OSMDColor(r, g, b), style);
-
+        comment = new GraphicalComment(this.rules, text, size, font, new OSMDColor(r, g, b), style);
+        comment.Location = timestamp;
         return comment;
     }
 }

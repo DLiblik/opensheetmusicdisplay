@@ -506,8 +506,9 @@ export abstract class MusicSystem extends GraphicalObject {
     public SerializeAnnotationsXML(document: XMLDocument): Node {
         for (let idx: number = 0; idx < this.StaffLines.length; idx++) {
             const stafflineNode: Node = this.StaffLines[idx].SerializeAnnotationsXML(document, idx);
-            //TODO: Maybe init the stafflines with an index property on creation?
-            document.childNodes[0].appendChild(stafflineNode);
+            if (stafflineNode) {
+                document.childNodes[0].appendChild(stafflineNode);
+            }
         }
         return document.childNodes[0];
     }

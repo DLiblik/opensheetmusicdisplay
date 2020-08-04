@@ -1,11 +1,28 @@
 .annotations-ui-container{
     position:fixed;
     bottom:0;
-    width:100%;
+    width:300px;
     background-color: #FFFFFF;
     display: none;
+    border: solid 1px black;
 }
 
 .show > .annotations-ui-container{
     display: block;
+}
+
+.hide {
+    display: none;
+}
+
+#comment-input {
+    background-color: rgba(255, 255, 128, .4);
+    border: dotted 1px blue;
+}
+
+#comment-input:focus {
+    border-width: 2px;
+    outline: none;
+    outline-offset: 0px;
+
 }

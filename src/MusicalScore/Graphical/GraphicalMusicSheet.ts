@@ -25,7 +25,7 @@ import {SelectionEndSymbol} from "./SelectionEndSymbol";
 import {OutlineAndFillStyleEnum} from "./DrawingEnums";
 import { GraphicalComment, StaffLine } from ".";
 import { GraphicalVoiceEntry } from "./GraphicalVoiceEntry";
-import { AnnotationsSheet } from "./AnnotationsSheet";
+import { AnnotationsSheet } from "./Annotations/AnnotationsSheet";
 
 /**
  * The graphical counterpart of a [[MusicSheet]]
