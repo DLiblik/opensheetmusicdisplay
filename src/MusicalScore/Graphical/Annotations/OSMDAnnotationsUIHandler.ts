@@ -16,6 +16,7 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     private textMeasureElement: HTMLSpanElement;
     private currentColor: OSMDColor;
     private currentSize: number;
+    private currentFontFamily: string;
     private rules: EngravingRules;
     private aManager: OSMDAnnotationsManager;
 
@@ -25,6 +26,8 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         this.aManager = aManager;
         this.currentColor = new OSMDColor(0, 0, 0);
         this.currentSize = 12;
+        this.currentFontFamily = "Times New Roman";
+
         const self: OSMDAnnotationsUIHandler = this;
         this.uiPromise = new Promise<HTMLElement>(function(resolveUIPromise: (value?: HTMLElement) => void, rejectUIPromise: (reason?: any) => void): void {
             AJAX.ajax(uIUrl).then(function(result: string): void {
@@ -42,7 +45,9 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     }
 
     private updateCommentStyle(): void {
-        this.textMeasureElement.style.font = this.currentSize + "px";
+        this.textMeasureElement.style.fontSize = this.currentSize + "px";
+        this.textMeasureElement.style.fontFamily = this.currentFontFamily;
+        this.commentInputElement.style.fontFamily = this.currentFontFamily;
         this.commentInputElement.style.color = this.currentColor.toString();
         this.commentInputElement.style.fontSize = this.currentSize + "px";
     }
@@ -69,14 +74,15 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
             fontSize.onchange = function(ev: Event): void {
                 self.currentSize = parseInt((this as HTMLInputElement).value, 10);
                 self.updateCommentStyle();
+                self.resizeCommentBox();
             };
+            self.updateCommentStyle();
             self.listenForClick();
         });
         return this.uiPromise;
     }
 
     public getOSMDCoordinates(clickLocation: PointF2D): PointF2D {
-
         const sheetX: number = (clickLocation.x - this.container.offsetLeft) / 10;
         const sheetY: number = (clickLocation.y - this.container.offsetTop) / 10;
         return new PointF2D(sheetX, sheetY);
@@ -116,6 +122,12 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         this.commentInputElement.style.left = placeAt.x + "px";
     }
 
+    private resizeCommentBox(): void {
+        this.textMeasureElement.textContent = this.commentInputElement.value;
+        const width: number = this.textMeasureElement.clientWidth + 8;
+        this.commentInputElement.style.width = width + "px";
+    }
+
     private hideCommentBox(): void {
         this.commentInputElement.value = "";
         this.commentInputElement.style.width = "8px";
@@ -129,9 +141,7 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
             const self: OSMDAnnotationsUIHandler = this;
             this.commentInputElement.oninput = undefined;
             this.commentInputElement.oninput = function(ev: Event): void {
-                self.textMeasureElement.textContent = self.commentInputElement.value;
-                const width: number = self.textMeasureElement.clientWidth + 8;
-                self.commentInputElement.style.width = width + "px";
+                self.resizeCommentBox();
                 self.placeCommentBox(nearestVoiceEntry);
             };
         } else {

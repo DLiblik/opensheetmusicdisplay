@@ -791,10 +791,10 @@ export abstract class MusicSheetCalculator {
                 this.updateStaffLineBorders(staffLine);
             }
         }
-        // calculate Y-spacing -> MusicPages are created here
-        musicSystemBuilder.calculateSystemYLayout();
         // calculate Comments for each Staffline
         this.calculateComments();
+        // calculate Y-spacing -> MusicPages are created here
+        musicSystemBuilder.calculateSystemYLayout();
         // calculate marked Areas for Systems
         this.calculateMarkedAreas();
 
