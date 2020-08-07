@@ -7,18 +7,19 @@ import { AnnotationContainer } from "./AnnotationContainer";
 import { GraphicalVoiceEntry } from "../GraphicalVoiceEntry";
 import { OSMDAnnotationsManager } from "./OSMDAnnotationsManager";
 import { OSMDColor } from "../../../Common/DataObjects";
+import { CommentInputUIContainer } from "./CommentInputUIContainer";
 
 export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     private container: HTMLElement;
     private uiPromise: Promise<HTMLElement>;
     private uiElement: HTMLElement;
-    private commentInputElement: HTMLInputElement;
-    private textMeasureElement: HTMLSpanElement;
+    private commentInput: CommentInputUIContainer;
     private currentColor: OSMDColor;
     private currentSize: number;
     private currentFontFamily: string;
     private rules: EngravingRules;
     private aManager: OSMDAnnotationsManager;
+    private isTouchDevice: boolean;
 
     constructor(container: HTMLElement, uIUrl: string, rules: EngravingRules, aManager: OSMDAnnotationsManager) {
         this.rules = rules;
@@ -27,15 +28,15 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         this.currentColor = new OSMDColor(0, 0, 0);
         this.currentSize = 12;
         this.currentFontFamily = "Times New Roman";
-
+        this.isTouchDevice = this.isTouch();
+        this.commentInput = new CommentInputUIContainer(undefined, this.isTouchDevice);
         const self: OSMDAnnotationsUIHandler = this;
+
         this.uiPromise = new Promise<HTMLElement>(function(resolveUIPromise: (value?: HTMLElement) => void, rejectUIPromise: (reason?: any) => void): void {
             AJAX.ajax(uIUrl).then(function(result: string): void {
                 self.uiElement = document.createElement("div");
                 self.uiElement.innerHTML = result;
                 self.container.appendChild(self.uiElement);
-                self.commentInputElement = document.getElementById("comment-input") as HTMLInputElement;
-                self.textMeasureElement = document.getElementById("measure-text") as HTMLSpanElement;
                 resolveUIPromise(self.uiElement);
             }).catch(function(reason: any): void {
                 console.error("Error retrieving annotations UI HTML", reason);
@@ -44,12 +45,15 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         });
     }
 
-    private updateCommentStyle(): void {
-        this.textMeasureElement.style.fontSize = this.currentSize + "px";
-        this.textMeasureElement.style.fontFamily = this.currentFontFamily;
-        this.commentInputElement.style.fontFamily = this.currentFontFamily;
-        this.commentInputElement.style.color = this.currentColor.toString();
-        this.commentInputElement.style.fontSize = this.currentSize + "px";
+    private isTouch(): boolean {
+        if (("ontouchstart" in window) || (window as any).DocumentTouch) {
+            return true;
+        }
+        // include the 'heartz' as a way to have a non matching MQ to help terminate the join
+        // https://git.io/vznFH
+        const prefixes: string[] = ["-webkit-", "-moz-", "-o-", "-ms-"];
+        const query: string = ["(", prefixes.join("touch-enabled),("), "heartz", ")"].join("");
+        return window.matchMedia(query).matches;
     }
 
     public initialize(): Promise<any> {
@@ -61,22 +65,20 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
             const fontSize: HTMLInputElement = document.getElementById("font-size") as HTMLInputElement;
             rInput.onchange = function(ev: Event): void {
                 self.currentColor.red = parseInt((this as HTMLInputElement).value, 10);
-                self.updateCommentStyle();
+                self.commentInput.FontColor = self.currentColor.toString();
             };
             gInput.onchange = function(ev: Event): void {
                 self.currentColor.green = parseInt((this as HTMLInputElement).value, 10);
-                self.updateCommentStyle();
+                self.commentInput.FontColor = self.currentColor.toString();
             };
             bInput.onchange = function(ev: Event): void {
                 self.currentColor.blue = parseInt((this as HTMLInputElement).value, 10);
-                self.updateCommentStyle();
+                self.commentInput.FontColor = self.currentColor.toString();
             };
             fontSize.onchange = function(ev: Event): void {
                 self.currentSize = parseInt((this as HTMLInputElement).value, 10);
-                self.updateCommentStyle();
-                self.resizeCommentBox();
+                self.commentInput.FontSize = self.currentSize;
             };
-            self.updateCommentStyle();
             self.listenForClick();
         });
         return this.uiPromise;
@@ -99,10 +101,8 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         this.container.onmousedown = (clickEvent: MouseEvent) => {
             self.container.onmousedown = undefined;
             const clickLocation: PointF2D = new PointF2D(clickEvent.pageX, clickEvent.pageY);
-            const sheetLocation: PointF2D = self.getOSMDCoordinates(clickLocation);
-            const nearestVoiceEntry: GraphicalVoiceEntry = self.aManager.getNearestVoiceEntry(sheetLocation);
-            self.showCommentBox(clickLocation, sheetLocation, nearestVoiceEntry);
-            self.showUI(clickLocation, sheetLocation, nearestVoiceEntry);
+            self.commentInput.show(clickLocation);
+            self.showUI();
         };
     }
 
@@ -110,71 +110,38 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         this.uiElement.classList.remove("show");
     }
 
-    private getPlacementForVoiceEntry(voiceEntry: GraphicalVoiceEntry, width: number = 20): PointF2D {
+    /*private getPlacementForVoiceEntry(voiceEntry: GraphicalVoiceEntry, width: number = 20): PointF2D {
         const yPlacement: number = this.aManager.getYPlacementForVoiceEntry(voiceEntry, width / 10);
         return this.getAbsolutePageCoordinates(new PointF2D(voiceEntry.PositionAndShape.AbsolutePosition.x, yPlacement));
-    }
-
-    private placeCommentBox(nearestVoiceEntry: GraphicalVoiceEntry): void {
-        const placeAt: PointF2D = this.getPlacementForVoiceEntry(nearestVoiceEntry, this.commentInputElement.clientWidth);
-        placeAt.y -= (this.commentInputElement.clientHeight + 5);
-        this.commentInputElement.style.top = placeAt.y + "px";
-        this.commentInputElement.style.left = placeAt.x + "px";
-    }
-
-    private resizeCommentBox(): void {
-        this.textMeasureElement.textContent = this.commentInputElement.value;
-        const width: number = this.textMeasureElement.clientWidth + 8;
-        this.commentInputElement.style.width = width + "px";
-    }
-
-    private hideCommentBox(): void {
-        this.commentInputElement.value = "";
-        this.commentInputElement.style.width = "8px";
-        this.commentInputElement.classList.add("hide");
-    }
-
-    private showCommentBox(clickLocation: PointF2D, sheetLocation: PointF2D, nearestVoiceEntry?: GraphicalVoiceEntry): void {
-        this.commentInputElement.classList.remove("hide");
-        if (nearestVoiceEntry) {
-            this.placeCommentBox(nearestVoiceEntry);
-            const self: OSMDAnnotationsUIHandler = this;
-            this.commentInputElement.oninput = undefined;
-            this.commentInputElement.oninput = function(ev: Event): void {
-                self.resizeCommentBox();
-                self.placeCommentBox(nearestVoiceEntry);
-            };
-        } else {
-            this.commentInputElement.style.top = clickLocation.y.toString() + "px";
-            this.commentInputElement.style.left = clickLocation.x.toString() + "px";
-        }
-    }
-
-    private showUI(clickLocation: PointF2D, sheetLocation: PointF2D, nearestVoiceEntry?: GraphicalVoiceEntry): void {
+    }*/
+    private showUI(): void {
         this.uiElement.classList.add("show");
         const self: OSMDAnnotationsUIHandler = this;
-        const annotationContainer: AnnotationContainer = new AnnotationContainer();
-        annotationContainer.ClickLocation = clickLocation;
-        annotationContainer.SheetClickLocation = sheetLocation;
         document.getElementById("add-comment").onclick = function(ev: MouseEvent): void {
             this.onclick = undefined;
-            const commentValue: string = self.commentInputElement.value;
-            const comment: GraphicalComment = new GraphicalComment(self.rules, commentValue);
+            const annotationContainer: AnnotationContainer = new AnnotationContainer();
+            const comment: GraphicalComment = new GraphicalComment(self.rules, self.commentInput.TextValue);
+            annotationContainer.ClickLocation = self.commentInput.Location;
+            annotationContainer.SheetClickLocation = self.getOSMDCoordinates(annotationContainer.ClickLocation);
+            //TODO: This needs to be on the annotation container, and needs to be relative to measure/note
+            comment.GraphicalLabel.PositionAndShape.AbsolutePosition = annotationContainer.SheetClickLocation;
             comment.FontColor = self.currentColor;
             comment.FontSize = self.currentSize;
+            comment.GraphicalLabel.Label.fontFamily = self.currentFontFamily;
+            const nearestVoiceEntry: GraphicalVoiceEntry = self.aManager.getNearestVoiceEntry(annotationContainer.SheetClickLocation);
             if (nearestVoiceEntry) {
                 comment.AssociatedVoiceEntry = nearestVoiceEntry;
             }
             annotationContainer.AnnotationObject = comment;
             self.aManager.addStafflineComment(annotationContainer);
             self.hideUI();
-            self.hideCommentBox();
+            self.commentInput.hideAndClear();
             self.listenForClick();
         };
         document.getElementById("cancel").onclick = function(ev: MouseEvent): void {
             this.onclick = undefined;
             self.hideUI();
-            self.hideCommentBox();
+            self.commentInput.hideAndClear();
             self.listenForClick();
         };
     }

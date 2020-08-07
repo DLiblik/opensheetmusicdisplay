@@ -15,14 +15,13 @@
     display: none;
 }
 
-#comment-input {
+.comment-input {
     background-color: rgba(255, 255, 128, .4);
     border: dotted 1px blue;
 }
 
-#comment-input:focus {
+.comment-input:focus {
     border-width: 2px;
     outline: none;
     outline-offset: 0px;
-
 }

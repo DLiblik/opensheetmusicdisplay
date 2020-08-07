@@ -27,6 +27,7 @@ export class OSMDAnnotationsManager implements IAnnotationsManager {
         return comment.FontSize * widthToHeightRatio;
     }
 
+    //From Fraction to fraction
     public getYPlacementForVoiceEntry(voiceEntry: GraphicalVoiceEntry, width: number = 2): number {
         if (!voiceEntry || !voiceEntry) {
             return;
@@ -48,6 +49,7 @@ export class OSMDAnnotationsManager implements IAnnotationsManager {
             throw new Error("Object Not Instance of GraphicalComment.");
         }
         const comment: GraphicalComment = annotationContainer.AnnotationObject as GraphicalComment;
+        comment.AssociatedVoiceEntry = this.graphic.GetNearestVoiceEntry(annotationContainer.SheetClickLocation);
         this.annotationSheet.AddCommentToStaffLine(comment.AssociatedVoiceEntry.parentStaffEntry.parentMeasure.ParentStaff.idInMusicSheet, comment);
         this.graphic.reCalculate();
         this.drawer.initializeForDrawingPage(comment.AssociatedVoiceEntry.notes[0].ParentMusicPage);
