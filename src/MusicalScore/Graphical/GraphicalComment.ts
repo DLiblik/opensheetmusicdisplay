@@ -8,7 +8,7 @@ import { EngravingRules } from "./EngravingRules";
 import { BoundingBox, StaffLine } from "..";
 import { Fraction } from "../../Common";
 import { GraphicalVoiceEntry } from "./GraphicalVoiceEntry";
-import { IGraphicalAnnotation } from "../Interfaces/IGraphicalAnnotation";
+import { IGraphicalAnnotation } from "./Annotations/Interfaces/IGraphicalAnnotation";
 
 export class GraphicalComment implements IGraphicalAnnotation {
 

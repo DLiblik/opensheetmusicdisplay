@@ -1,4 +1,4 @@
-import { IGraphicalAnnotation } from "../../Interfaces/IGraphicalAnnotation";
+import { IGraphicalAnnotation } from "./Interfaces/IGraphicalAnnotation";
 import { PointF2D } from "../../../Common/DataObjects/PointF2D";
 
 export class AnnotationContainer {

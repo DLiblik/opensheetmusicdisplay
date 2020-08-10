@@ -1,5 +1,5 @@
 import { GraphicalMusicSheet, GraphicalComment, GraphicalVoiceEntry, GraphicalLayers, MusicSheetCalculator, SkyBottomLineCalculator, StaffLine } from "..";
-import { IAnnotationsManager } from "../../Interfaces/IAnnotationsManager";
+import { IAnnotationsManager } from "./Interfaces/IAnnotationsManager";
 import { EngravingRules } from "../EngravingRules";
 import { VexFlowMusicSheetDrawer } from "../VexFlow";
 import { AnnotationsSheet } from "./AnnotationsSheet";

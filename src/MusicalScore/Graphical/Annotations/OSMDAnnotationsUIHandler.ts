@@ -1,22 +1,19 @@
-import { IAnnotationsUIHandler } from "../../Interfaces/IAnnotationsUIHandler";
+import { IAnnotationsUIHandler } from "./Interfaces/IAnnotationsUIHandler";
 import { PointF2D } from "../../../Common/DataObjects/PointF2D";
-import { AJAX } from "../../../OpenSheetMusicDisplay";
 import { GraphicalComment } from "../..";
 import { EngravingRules } from "../EngravingRules";
 import { AnnotationContainer } from "./AnnotationContainer";
 import { GraphicalVoiceEntry } from "../GraphicalVoiceEntry";
 import { OSMDAnnotationsManager } from "./OSMDAnnotationsManager";
 import { OSMDColor } from "../../../Common/DataObjects";
-import { CommentInputUIContainer } from "./CommentInputUIContainer";
+import { CommentInputUI } from "./CommentInputUI";
+import { CommentStylingUI } from "./CommentStylingUI";
+import { resolve } from "path";
 
 export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     private container: HTMLElement;
-    private uiPromise: Promise<HTMLElement>;
-    private uiElement: HTMLElement;
-    private commentInput: CommentInputUIContainer;
-    private currentColor: OSMDColor;
-    private currentSize: number;
-    private currentFontFamily: string;
+    private commentInput: CommentInputUI;
+    private commentStylingBox: CommentStylingUI;
     private rules: EngravingRules;
     private aManager: OSMDAnnotationsManager;
     private isTouchDevice: boolean;
@@ -25,24 +22,7 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         this.rules = rules;
         this.container = container;
         this.aManager = aManager;
-        this.currentColor = new OSMDColor(0, 0, 0);
-        this.currentSize = 12;
-        this.currentFontFamily = "Times New Roman";
         this.isTouchDevice = this.isTouch();
-        this.commentInput = new CommentInputUIContainer(undefined, this.isTouchDevice);
-        const self: OSMDAnnotationsUIHandler = this;
-
-        this.uiPromise = new Promise<HTMLElement>(function(resolveUIPromise: (value?: HTMLElement) => void, rejectUIPromise: (reason?: any) => void): void {
-            AJAX.ajax(uIUrl).then(function(result: string): void {
-                self.uiElement = document.createElement("div");
-                self.uiElement.innerHTML = result;
-                self.container.appendChild(self.uiElement);
-                resolveUIPromise(self.uiElement);
-            }).catch(function(reason: any): void {
-                console.error("Error retrieving annotations UI HTML", reason);
-                rejectUIPromise("AJAX Error retrieving annotations UI HTML: " + reason);
-            });
-        });
     }
 
     private isTouch(): boolean {
@@ -57,31 +37,13 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     }
 
     public initialize(): Promise<any> {
-        const self: OSMDAnnotationsUIHandler = this;
-        this.uiPromise.then(function(value: HTMLElement): void {
-            const rInput: HTMLInputElement = document.getElementById("r") as HTMLInputElement;
-            const gInput: HTMLInputElement = document.getElementById("g") as HTMLInputElement;
-            const bInput: HTMLInputElement = document.getElementById("b") as HTMLInputElement;
-            const fontSize: HTMLInputElement = document.getElementById("font-size") as HTMLInputElement;
-            rInput.onchange = function(ev: Event): void {
-                self.currentColor.red = parseInt((this as HTMLInputElement).value, 10);
-                self.commentInput.FontColor = self.currentColor.toString();
-            };
-            gInput.onchange = function(ev: Event): void {
-                self.currentColor.green = parseInt((this as HTMLInputElement).value, 10);
-                self.commentInput.FontColor = self.currentColor.toString();
-            };
-            bInput.onchange = function(ev: Event): void {
-                self.currentColor.blue = parseInt((this as HTMLInputElement).value, 10);
-                self.commentInput.FontColor = self.currentColor.toString();
-            };
-            fontSize.onchange = function(ev: Event): void {
-                self.currentSize = parseInt((this as HTMLInputElement).value, 10);
-                self.commentInput.FontSize = self.currentSize;
-            };
-            self.listenForClick();
+        this.commentInput = new CommentInputUI(undefined, this.isTouchDevice);
+        this.commentStylingBox = new CommentStylingUI(undefined,  this.isTouchDevice);
+        this.commentStylingBox.registerListenerObject(this);
+        this.listenForClick();
+        return new Promise(function(mainResolve: (value?: any) => void, mainReject: (reason?: any) => void): void {
+            resolve();
         });
-        return this.uiPromise;
     }
 
     public getOSMDCoordinates(clickLocation: PointF2D): PointF2D {
@@ -102,47 +64,41 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
             self.container.onmousedown = undefined;
             const clickLocation: PointF2D = new PointF2D(clickEvent.pageX, clickEvent.pageY);
             self.commentInput.show(clickLocation);
-            self.showUI();
+            self.commentStylingBox.show();
         };
     }
 
-    private hideUI(): void {
-        this.uiElement.classList.remove("show");
+    public onColorChange(ev: Event): void {
+        this.commentInput.FontColor = (ev.target as HTMLInputElement).value;
     }
 
-    /*private getPlacementForVoiceEntry(voiceEntry: GraphicalVoiceEntry, width: number = 20): PointF2D {
-        const yPlacement: number = this.aManager.getYPlacementForVoiceEntry(voiceEntry, width / 10);
-        return this.getAbsolutePageCoordinates(new PointF2D(voiceEntry.PositionAndShape.AbsolutePosition.x, yPlacement));
-    }*/
-    private showUI(): void {
-        this.uiElement.classList.add("show");
-        const self: OSMDAnnotationsUIHandler = this;
-        document.getElementById("add-comment").onclick = function(ev: MouseEvent): void {
-            this.onclick = undefined;
-            const annotationContainer: AnnotationContainer = new AnnotationContainer();
-            const comment: GraphicalComment = new GraphicalComment(self.rules, self.commentInput.TextValue);
-            annotationContainer.ClickLocation = self.commentInput.Location;
-            annotationContainer.SheetClickLocation = self.getOSMDCoordinates(annotationContainer.ClickLocation);
-            //TODO: This needs to be on the annotation container, and needs to be relative to measure/note
-            comment.GraphicalLabel.PositionAndShape.AbsolutePosition = annotationContainer.SheetClickLocation;
-            comment.FontColor = self.currentColor;
-            comment.FontSize = self.currentSize;
-            comment.GraphicalLabel.Label.fontFamily = self.currentFontFamily;
-            const nearestVoiceEntry: GraphicalVoiceEntry = self.aManager.getNearestVoiceEntry(annotationContainer.SheetClickLocation);
-            if (nearestVoiceEntry) {
-                comment.AssociatedVoiceEntry = nearestVoiceEntry;
-            }
-            annotationContainer.AnnotationObject = comment;
-            self.aManager.addStafflineComment(annotationContainer);
-            self.hideUI();
-            self.commentInput.hideAndClear();
-            self.listenForClick();
-        };
-        document.getElementById("cancel").onclick = function(ev: MouseEvent): void {
-            this.onclick = undefined;
-            self.hideUI();
-            self.commentInput.hideAndClear();
-            self.listenForClick();
-        };
+    public onSizeChange(ev: Event): void {
+        this.commentInput.FontSize = parseInt((ev.target as HTMLInputElement).value, 10);
+    }
+
+    public onAdd(ev: MouseEvent): void {
+        const annotationContainer: AnnotationContainer = new AnnotationContainer();
+        const comment: GraphicalComment = new GraphicalComment(this.rules, this.commentInput.TextValue);
+        annotationContainer.ClickLocation = this.commentInput.Location;
+        annotationContainer.SheetClickLocation = this.getOSMDCoordinates(annotationContainer.ClickLocation);
+        //TODO: This needs to be on the annotation container, and needs to be relative to measure/note
+        comment.GraphicalLabel.PositionAndShape.AbsolutePosition = annotationContainer.SheetClickLocation;
+        const colorArray: string[] = this.commentInput.FontColor.match(/\d{1,3}/g);
+        if (colorArray.length === 3) {
+            comment.FontColor = new OSMDColor(parseInt(colorArray[0], 10), parseInt(colorArray[1], 10), parseInt(colorArray[2], 10));
+        }
+        comment.FontSize = this.commentInput.FontSize;
+        comment.GraphicalLabel.Label.fontFamily = this.commentInput.FontFamily;
+        const nearestVoiceEntry: GraphicalVoiceEntry = this.aManager.getNearestVoiceEntry(annotationContainer.SheetClickLocation);
+        if (nearestVoiceEntry) {
+            comment.AssociatedVoiceEntry = nearestVoiceEntry;
+        }
+        annotationContainer.AnnotationObject = comment;
+        this.aManager.addStafflineComment(annotationContainer);
+        this.commentInput.hideAndClear();
+    }
+
+    public onCancel(ev: MouseEvent): void {
+        this.commentInput.hideAndClear();
     }
 }

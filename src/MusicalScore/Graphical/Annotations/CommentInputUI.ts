@@ -1,16 +1,15 @@
 import { PointF2D } from "../../../Common/DataObjects/PointF2D";
+import { AUIController } from "./Interfaces/AUIController";
 
-export class CommentInputUIContainer {
-    private parentElement: HTMLElement;
+export class CommentInputUI extends AUIController {
+    public ValidEvents: string[];
     private commentInputContainerElement: HTMLSpanElement;
     private commentInputDragger: HTMLElement;
-    private commentInputElement: HTMLInputElement;
+    private commentInputElement: HTMLTextAreaElement;
     private textMeasureElement: HTMLSpanElement;
-    private isTouch: boolean;
 
-    constructor(parentElement: HTMLElement = document.body, isTouch: boolean = false) {
-        this.isTouch = isTouch;
-        this.parentElement = parentElement;
+    protected initialize(): void {
+        //TODO: Seperate View from Controller? (like UI Handler now has)
         this.commentInputContainerElement = document.createElement("span");
         this.commentInputContainerElement.classList.add("comment-input-container", "hide");
         this.commentInputContainerElement.style.position = "absolute";
@@ -20,23 +19,41 @@ export class CommentInputUIContainer {
         this.commentInputDragger = document.createElement("i");
         this.commentInputDragger.classList.add("comment-input-dragger", "arrows", "alternate", "icon");
 
-        this.commentInputElement = document.createElement("input");
+        this.commentInputElement = document.createElement("textarea");
         this.commentInputElement.classList.add("comment-input");
-        this.commentInputElement.type = "text";
-        this.commentInputElement.size = 1;
+        this.commentInputElement.style.lineHeight = "1.15";
+        this.commentInputElement.style.resize = "none";
+        this.commentInputElement.style.overflow = "hidden";
 
         this.textMeasureElement = document.createElement("span");
         this.textMeasureElement.style.position = "absolute";
         this.textMeasureElement.style.visibility = "hidden";
         this.textMeasureElement.style.zIndex = "-99999";
+        this.textMeasureElement.style.lineHeight = "1.15";
 
         this.commentInputContainerElement.appendChild(this.commentInputDragger);
         this.commentInputContainerElement.appendChild(this.commentInputElement);
 
         this.parentElement.appendChild(this.commentInputContainerElement);
         this.parentElement.appendChild(this.textMeasureElement);
+        this.defaultValues();
+    }
+
+    private defaultValues(): void {
         this.FontSize = 12;
         this.FontFamily = "Times New Roman";
+        this.LineHeight = 1.15;
+    }
+
+    private lineHeight: number = 1.15;
+    public set LineHeight(height: number) {
+        this.lineHeight = height;
+        this.textMeasureElement.style.lineHeight = this.lineHeight.toString();
+        this.commentInputElement.style.lineHeight = this.lineHeight.toString();
+        this.resize();
+    }
+    public get LineHeight(): number {
+        return this.lineHeight;
     }
 
     private fontSize: number = 12;
@@ -45,6 +62,7 @@ export class CommentInputUIContainer {
         const fontSizeString: string = this.fontSize + "px";
         this.textMeasureElement.style.fontSize = fontSizeString;
         this.commentInputElement.style.fontSize = fontSizeString;
+        this.resize();
     }
     public get FontSize(): number {
         return this.fontSize;
@@ -53,6 +71,7 @@ export class CommentInputUIContainer {
     public set FontFamily(family: string) {
         this.textMeasureElement.style.fontFamily = family;
         this.commentInputElement.style.fontFamily = family;
+        this.resize();
     }
     public get FontFamily(): string {
         return this.commentInputElement.style.fontFamily;
@@ -82,15 +101,18 @@ export class CommentInputUIContainer {
     }
 
     private resize(): void {
-        this.textMeasureElement.textContent = this.commentInputElement.value;
-        const width: number = this.textMeasureElement.clientWidth + 8;
+        this.textMeasureElement.innerHTML = this.commentInputElement.value.replace(/(\r\n|\n|\r)/g, "<br>");
+        const width: number = this.textMeasureElement.clientWidth + 14;
+        const height: number = this.textMeasureElement.clientHeight + this.fontSize * 1.5;
         this.commentInputElement.style.width = width + "px";
+        this.commentInputElement.style.height = height + "px";
     }
 
     public hideAndClear(): void {
+        this.commentInputContainerElement.classList.add("hide");
         this.commentInputElement.value = "";
         this.commentInputElement.style.width = "8px";
-        this.commentInputContainerElement.classList.add("hide");
+        this.defaultValues();
     }
 
     private pos1: number = 0;
@@ -99,15 +121,13 @@ export class CommentInputUIContainer {
     private pos4: number = 0;
 
     public show(renderLocation: PointF2D): void {
-        this.commentInputContainerElement.classList.remove("hide");
         this.place(renderLocation.x - this.commentInputDragger.clientWidth / 2,
                    renderLocation.y - this.commentInputElement.clientHeight / 2);
-        const self: CommentInputUIContainer = this;
+        const self: CommentInputUI = this;
 
         const downEventName: string = this.isTouch ? "ontouchstart" : "onmousedown";
         const upEventName: string = this.isTouch ?  "ontouchend" : "onmouseup";
         const moveEventName: string = this.isTouch ? "ontouchmove" : "onmousemove";
-        console.log(downEventName, upEventName, moveEventName);
         this.commentInputDragger[downEventName] = function(downEvent: MouseEvent | TouchEvent): void {
             downEvent.preventDefault();
             if (self.isTouch && downEvent instanceof TouchEvent) {
@@ -120,17 +140,6 @@ export class CommentInputUIContainer {
             document[upEventName] = function(upEvent: MouseEvent | TouchEvent): void {
                 document[upEventName] = undefined;
                 document[moveEventName] = undefined;
-                /*let x: number = 0;
-                let y: number = 0;
-                if (self.isTouch && upEvent instanceof TouchEvent) {
-                    x = upEvent.changedTouches[0].clientX;
-                    y = upEvent.changedTouches[0].clientY;
-                } else if (upEvent instanceof MouseEvent) {
-                    x = upEvent.clientX;
-                    y = upEvent.clientY;
-                }
-                //nearestVoiceEntry = self.aManager.getNearestVoiceEntry(self.getOSMDCoordinates(new PointF2D(x, y)));
-                console.log("eventup", x, y);*/
             };
             // call a function whenever the cursor moves:
             document[moveEventName] = function(mouseMoveEvent: MouseEvent | TouchEvent): void {
@@ -157,5 +166,6 @@ export class CommentInputUIContainer {
         this.commentInputElement.oninput = function(ev: Event): void {
             self.resize();
         };
+        this.commentInputContainerElement.classList.remove("hide");
     }
 }

@@ -1,6 +1,6 @@
-import { AnnotationContainer } from "../Graphical/Annotations/AnnotationContainer";
-import { GraphicalComment, GraphicalVoiceEntry } from "..";
-import { PointF2D } from "../../Common/DataObjects";
+import { AnnotationContainer } from "../AnnotationContainer";
+import { GraphicalComment, GraphicalVoiceEntry } from "../../..";
+import { PointF2D } from "../../../../Common/DataObjects";
 
 export interface IAnnotationsManager {
   calculateCommentWidth(comment: GraphicalComment): number;

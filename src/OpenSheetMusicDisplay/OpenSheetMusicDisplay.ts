@@ -24,7 +24,7 @@ import { ITransposeCalculator } from "../MusicalScore/Interfaces";
 import { OSMDCommentReader } from "../MusicalScore/ScoreIO/OSMDCommentReader";
 import { OSMDAnnotationsManager } from "../MusicalScore/Graphical/Annotations/OSMDAnnotationsManager";
 import { AnnotationsSheet } from "../MusicalScore/Graphical/Annotations/AnnotationsSheet";
-import { IAnnotationsUIHandler } from "../MusicalScore/Interfaces/IAnnotationsUIHandler";
+import { IAnnotationsUIHandler } from "../MusicalScore/Graphical/Annotations/Interfaces/IAnnotationsUIHandler";
 import { OSMDAnnotationsUIHandler } from "../MusicalScore/Graphical/Annotations/OSMDAnnotationsUIHandler";
 /**
  * The main class and control point of OpenSheetMusicDisplay.<br>
