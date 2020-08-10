@@ -23,9 +23,9 @@ import { OrnamentEnum, OrnamentContainer } from "../../VoiceData/OrnamentContain
 import { Notehead, NoteHeadShape } from "../../VoiceData/Notehead";
 import { unitInPixels } from "./VexFlowMusicSheetDrawer";
 import { EngravingRules } from "../EngravingRules";
-import { Note } from "../..";
+import { Note } from "../../../MusicalScore/VoiceData/Note";
 import StaveNote = Vex.Flow.StaveNote;
-import { ArpeggioType } from "../../VoiceData";
+import { ArpeggioType } from "../../VoiceData/Arpeggio";
 import { TabNote } from "../../VoiceData/TabNote";
 
 /**
@@ -115,10 +115,23 @@ export class VexFlowConverter {
      * @returns {string[]}
      */
     public static pitch(note: VexFlowGraphicalNote, pitch: Pitch): [string, string, ClefInstruction] {
+        //FIXME: The octave seems to need a shift of three?
+        //FIXME: Also rests seem to use different offsets depending on the clef.
+        let fixmeOffset: number = 3;
+        if (note.sourceNote.isRest()) {
+            fixmeOffset = 0;
+            if (note.Clef().ClefType === ClefEnum.F) {
+                fixmeOffset = 2;
+            }
+            if (note.Clef().ClefType === ClefEnum.C) {
+                fixmeOffset = 2;
+            }
+            // TODO the pitch for rests will be the start position, for eights rests it will be the bottom point
+            // maybe we want to center on the display position instead of having the bottom there?
+        }
         const fund: string = NoteEnum[pitch.FundamentalNote].toLowerCase();
         const acc: string = Pitch.accidentalVexflow(pitch.Accidental);
-        // The octave seems to need a shift of three FIXME?
-        const octave: number = pitch.Octave - note.Clef().OctaveOffset + 3;
+        const octave: number = pitch.Octave - note.Clef().OctaveOffset + fixmeOffset;
         const notehead: Notehead = note.sourceNote.Notehead;
         let noteheadCode: string = "";
         if (notehead) {
@@ -197,7 +210,13 @@ export class VexFlowConverter {
             // if it is a rest:
             if (note.sourceNote.isRest()) {
                 isRest = true;
-                keys = ["b/4"];
+                if (note.sourceNote.Pitch) {
+                    const restPitch: [string, string, ClefInstruction] = (note as VexFlowGraphicalNote).vfpitch;
+                    keys = [restPitch[0]];
+                    break;
+                } else {
+                    keys = ["b/4"];
+                }
                 // TODO do collision checking, place rest e.g. either below staff (A3, for stem direction below voice) or above (C5)
                 // if it is a full measure rest:
                 if (note.parentVoiceEntry.parentStaffEntry.parentMeasure.parentSourceMeasure.Duration.RealValue <= frac.RealValue) {
@@ -544,6 +563,7 @@ export class VexFlowConverter {
      */
     public static CreateTabNote(gve: GraphicalVoiceEntry): Vex.Flow.TabNote {
         const tabPositions: {str: number, fret: number}[] = [];
+        const notes: GraphicalNote[] = gve.notes.reverse();
         const tabPhrases: { type: number, text: string, width: number }[] = [];
         const frac: Fraction = gve.notes[0].graphicalNoteLength;
         const isTuplet: boolean = gve.notes[0].sourceNote.NoteTuplet !== undefined;
@@ -554,26 +574,29 @@ export class VexFlowConverter {
             const tabNote: TabNote = note.sourceNote as TabNote;
             const tabPosition: {str: number, fret: number} = {str: tabNote.StringNumber, fret: tabNote.FretNumber};
             tabPositions.push(tabPosition);
-            tabNote.BendArray.forEach( function( bend: {bendalter: number, direction: string} ): void {
-                let phraseText: string;
-                const phraseStep: number = bend.bendalter - tabPosition.fret;
-                if (phraseStep > 1) {
-                    phraseText = "Full";
-                } else if (phraseStep === 1) {
-                    phraseText = "1/2";
-                } else {
-                    phraseText = "1/4";
-                }
-                if (bend.direction === "up") {
-                    tabPhrases.push({type: Vex.Flow.Bend.UP, text: phraseText, width: 10});
-                } else {
-                    tabPhrases.push({type: Vex.Flow.Bend.DOWN, text: phraseText, width: 10});
-                }
-            });
+            if (tabNote.BendArray) {
+                tabNote.BendArray.forEach( function( bend: {bendalter: number, direction: string} ): void {
+                    let phraseText: string;
+                    const phraseStep: number = bend.bendalter - tabPosition.fret;
+                    if (phraseStep > 1) {
+                        phraseText = "Full";
+                    } else if (phraseStep === 1) {
+                        phraseText = "1/2";
+                    } else {
+                        phraseText = "1/4";
+                    }
+                    if (bend.direction === "up") {
+                        tabPhrases.push({type: Vex.Flow.Bend.UP, text: phraseText, width: 10});
+                    } else {
+                        tabPhrases.push({type: Vex.Flow.Bend.DOWN, text: phraseText, width: 10});
+                    }
+                });
+            }
 
             if (tabNote.VibratoStroke) {
                 tabVibrato = true;
             }
+
             if (numDots < note.numberOfDots) {
                 numDots = note.numberOfDots;
             }
@@ -581,10 +604,16 @@ export class VexFlowConverter {
         for (let i: number = 0, len: number = numDots; i < len; ++i) {
             duration += "d";
         }
+
         const vfnote: Vex.Flow.TabNote = new Vex.Flow.TabNote({
             duration: duration,
             positions: tabPositions,
         });
+
+        for (let i: number = 0, len: number = notes.length; i < len; i += 1) {
+            (notes[i] as VexFlowGraphicalNote).setIndex(vfnote, i);
+        }
+
         tabPhrases.forEach(function(phrase: { type: number, text: string, width: number }): void {
             if (phrase.type === Vex.Flow.Bend.UP) {
                 vfnote.addModifier (new Vex.Flow.Bend(phrase.text, false));
@@ -592,12 +621,6 @@ export class VexFlowConverter {
                 vfnote.addModifier (new Vex.Flow.Bend(phrase.text, true));
             }
         });
-        // does not work well to add phrases as array
-        /*
-        if (tabPhrases.length > 0) {
-           vfnote.addModifier (new Vex.Flow.Bend(undefined, undefined, tabPhrases), 1);
-        }
-        */
         if (tabVibrato) {
             vfnote.addModifier(new Vex.Flow.Vibrato());
         }

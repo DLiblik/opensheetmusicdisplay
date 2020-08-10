@@ -49,8 +49,9 @@ export class GraphicalLabel extends Clickable {
         this.TextLines = [];
         const labelMarginBorderFactor: number = this.rules?.LabelMarginBorderFactor ?? 0.1;
         const lines: string[] = this.Label.text.split(/[\n\r]+/g);
+        const numOfLines: number = lines.length;
         let maxWidth: number = 0;
-        for (let i: number = 0; i < lines.length; i++) {
+        for (let i: number = 0; i < numOfLines; i++) {
             const line: string = lines[i].trim();
             if (!line || line === "") {
                 continue;
@@ -85,7 +86,10 @@ export class GraphicalLabel extends Clickable {
             line.xOffset = xOffset;
         }
 
-        const height: number = this.Label.fontHeight * this.TextLines.length;
+        let height: number = this.Label.fontHeight * numOfLines;
+        if (this.rules.SpacingBetweenTextLines > 0 && this.TextLines.length > 1) {
+            height += (this.rules.SpacingBetweenTextLines * numOfLines) / 10;
+        }
         const bbox: BoundingBox = this.PositionAndShape;
 
         switch (this.Label.textAlignment) {

@@ -8,6 +8,7 @@ import { SourceMeasure } from "../VoiceData/SourceMeasure";
 import { SourceStaffEntry } from "../VoiceData/SourceStaffEntry";
 import { Beam } from "../VoiceData/Beam";
 import { Tie } from "../VoiceData/Tie";
+import { TieTypes } from "../../Common/Enums/";
 import { Tuplet } from "../VoiceData/Tuplet";
 import { Fraction } from "../../Common/DataObjects/Fraction";
 import { IXmlElement } from "../../Common/FileIO/Xml";
@@ -113,9 +114,10 @@ export class VoiceGenerator {
     this.currentStaffEntry = parentStaffEntry;
     this.currentMeasure = parentMeasure;
     //log.debug("read called:", restNote);
+
     try {
       this.currentNote = restNote
-        ? this.addRestNote(noteDuration, noteTypeXml, printObject, isCueNote, noteheadColorXml)
+        ? this.addRestNote(noteNode.element("rest"), noteDuration, noteTypeXml, printObject, isCueNote, noteheadColorXml)
         : this.addSingleNote(noteNode, noteDuration, noteTypeXml, typeDuration, normalNotes, chord, guitarPro,
                              printObject, isCueNote, stemDirectionXml, tremoloStrokes, stemColorXml, noteheadColorXml, vibratoStrokes);
       // read lyrics
@@ -190,9 +192,23 @@ export class VoiceGenerator {
         // check for Ties - must be the last check
         const tiedNodeList: IXmlElement[] = notationNode.elements("tied");
         if (tiedNodeList.length > 0) {
-          this.addTie(tiedNodeList, measureStartAbsoluteTimestamp, maxTieNoteFraction);
+          this.addTie(tiedNodeList, measureStartAbsoluteTimestamp, maxTieNoteFraction, TieTypes.SIMPLE);
         }
-
+        //check for slides, they are the same as Ties but with a different connection
+        const slideNodeList: IXmlElement[] = notationNode.elements("slide");
+        if (slideNodeList.length > 0) {
+          this.addTie(slideNodeList, measureStartAbsoluteTimestamp, maxTieNoteFraction, TieTypes.SLIDE);
+        }
+        //check for slides, they are the same as Ties but with a different connection
+        const technicalNode: IXmlElement = notationNode.element("technical");
+        const hammerNodeList: IXmlElement[] = technicalNode.elements("hammer-on");
+        if (hammerNodeList.length > 0) {
+          this.addTie(hammerNodeList, measureStartAbsoluteTimestamp, maxTieNoteFraction, TieTypes.HAMMERON);
+        }
+        const pulloffNodeList: IXmlElement[] = technicalNode.elements("pull-off");
+        if (pulloffNodeList.length > 0) {
+          this.addTie(pulloffNodeList, measureStartAbsoluteTimestamp, maxTieNoteFraction, TieTypes.PULLOFF);
+        }
         // remove open ties, if there is already a gap between the last tie note and now.
         const openTieDict: { [_: number]: Tie; } = this.openTieDict;
         for (const key in openTieDict) {
@@ -462,9 +478,17 @@ export class VoiceGenerator {
    * @param divisions
    * @returns {Note}
    */
-  private addRestNote(noteDuration: Fraction, noteTypeXml: NoteType, printObject: boolean, isCueNote: boolean, noteheadColorXml: string): Note {
+  private addRestNote(node: IXmlElement, noteDuration: Fraction, noteTypeXml: NoteType,
+                      printObject: boolean, isCueNote: boolean, noteheadColorXml: string): Note {
     const restFraction: Fraction = Fraction.createFromFraction(noteDuration);
-    const restNote: Note = new Note(this.currentVoiceEntry, this.currentStaffEntry, restFraction, undefined);
+    const displayStep: IXmlElement = node.element("display-step");
+    const octave: IXmlElement = node.element("display-octave");
+    let pitch: Pitch = undefined;
+    if (displayStep && octave) {
+        const noteStep: NoteEnum = NoteEnum[displayStep.value.toUpperCase()];
+        pitch = new Pitch(noteStep, parseInt(octave.value, 10), AccidentalEnum.NONE);
+    }
+    const restNote: Note = new Note(this.currentVoiceEntry, this.currentStaffEntry, restFraction, pitch, true);
     restNote.NoteTypeXml = noteTypeXml;
     restNote.PrintObject = printObject;
     restNote.IsCueNote = isCueNote;
@@ -757,7 +781,7 @@ export class VoiceGenerator {
     }
   }
 
-  private addTie(tieNodeList: IXmlElement[], measureStartAbsoluteTimestamp: Fraction, maxTieNoteFraction: Fraction): void {
+  private addTie(tieNodeList: IXmlElement[], measureStartAbsoluteTimestamp: Fraction, maxTieNoteFraction: Fraction, tieType: TieTypes): void {
     if (tieNodeList) {
       if (tieNodeList.length === 1) {
         const tieNode: IXmlElement = tieNodeList[0];
@@ -770,16 +794,13 @@ export class VoiceGenerator {
                 delete this.openTieDict[num];
               }
               const newTieNumber: number = this.getNextAvailableNumberForTie();
-              const tie: Tie = new Tie(this.currentNote);
+              const tie: Tie = new Tie(this.currentNote, tieType);
               this.openTieDict[newTieNumber] = tie;
             } else if (type === "stop") {
               const tieNumber: number = this.findCurrentNoteInTieDict(this.currentNote);
               const tie: Tie = this.openTieDict[tieNumber];
               if (tie) {
                 tie.AddNote(this.currentNote);
-                if (maxTieNoteFraction.lt(Fraction.plus(this.currentStaffEntry.Timestamp, this.currentNote.Length))) {
-                  maxTieNoteFraction = Fraction.plus(this.currentStaffEntry.Timestamp, this.currentNote.Length);
-                }
                 delete this.openTieDict[tieNumber];
               }
             }
@@ -794,9 +815,6 @@ export class VoiceGenerator {
         if (tieNumber >= 0) {
           const tie: Tie = this.openTieDict[tieNumber];
           tie.AddNote(this.currentNote);
-          if (maxTieNoteFraction.lt(Fraction.plus(this.currentStaffEntry.Timestamp, this.currentNote.Length))) {
-            maxTieNoteFraction = Fraction.plus(this.currentStaffEntry.Timestamp, this.currentNote.Length);
-          }
         }
       }
     }
@@ -830,8 +848,14 @@ export class VoiceGenerator {
     for (const key in openTieDict) {
       if (openTieDict.hasOwnProperty(key)) {
         const tie: Tie = openTieDict[key];
+        const tieTabNote: TabNote = tie.Notes[0] as TabNote;
+        const tieCandidateNote: TabNote = candidateNote as TabNote;
         if (tie.Pitch.FundamentalNote === candidateNote.Pitch.FundamentalNote && tie.Pitch.Octave === candidateNote.Pitch.Octave) {
-          return +key;
+          return parseInt(key, 10);
+        } else if (tieTabNote.StringNumber !== undefined) {
+          if (tieTabNote.StringNumber === tieCandidateNote.StringNumber) {
+            return parseInt(key, 10);
+          }
         }
       }
     }
