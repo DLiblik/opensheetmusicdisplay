@@ -90,7 +90,7 @@ export class CommentInputUI extends AUIController {
     private xLocation: number = 0;
     private yLocation: number = 0;
     public get Location(): PointF2D {
-        return new PointF2D(this.xLocation, this.yLocation);
+        return new PointF2D(this.xLocation + this.commentInputDragger.clientWidth, this.yLocation);
     }
 
     private place(x: number, y: number): void {

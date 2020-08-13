@@ -5,13 +5,11 @@ import { OSMDColor } from "../../Common/DataObjects/OSMDColor";
 import { FontStyles } from "../../Common/Enums/FontStyles";
 import { Fonts } from "../../Common/Enums/Fonts";
 import { EngravingRules } from "./EngravingRules";
-import { BoundingBox, StaffLine } from "..";
-import { Fraction } from "../../Common";
+import { BoundingBox } from "..";
 import { IGraphicalAnnotation } from "./Annotations/Interfaces/IGraphicalAnnotation";
 import { PointF2D } from "../../Common/DataObjects";
 
 export class GraphicalComment extends IGraphicalAnnotation {
-    public Location: Fraction;
     private graphicalLabel: GraphicalLabel;
     public get GraphicalLabel(): GraphicalLabel {
         return this.graphicalLabel;
@@ -24,9 +22,6 @@ export class GraphicalComment extends IGraphicalAnnotation {
     }
     public setLabelPositionAndShapeBorders(): void {
         this.GraphicalLabel.setLabelPositionAndShapeBorders();
-    }
-    public get ParentStaffline(): StaffLine {
-        return this.associatedVoiceEntry?.parentStaffEntry?.parentMeasure?.ParentStaffLine;
     }
     public get FontColor(): OSMDColor {
         return this.graphicalLabel.Label.color;
@@ -72,6 +67,7 @@ export class GraphicalComment extends IGraphicalAnnotation {
         const node: HTMLElement = document.createElement("comment");
         const textNode: Node = document.createTextNode(this.graphicalLabel.Label.text);
         node.appendChild(textNode);
+        /* TODO: Do we still need fraction?
         const locNode: HTMLElement = document.createElement("location");
         locNode.setAttribute("num", this.Location.Numerator.toString());
         locNode.setAttribute("denom", this.Location.Denominator.toString());
@@ -80,6 +76,14 @@ export class GraphicalComment extends IGraphicalAnnotation {
             locNode.setAttribute("whole", whole.toString());
         }
         node.appendChild(locNode);
+        */
+        const anchorNode: HTMLElement = document.createElement("anchor");
+        anchorNode.setAttribute("id", this.anchorObject.InternalID.toString());
+        const relativeNode: HTMLElement = document.createElement("relative-position");
+        relativeNode.setAttribute("x", this.PositionAndShape.RelativePosition.x.toString());
+        relativeNode.setAttribute("y", this.PositionAndShape.RelativePosition.y.toString());
+        anchorNode.appendChild(relativeNode);
+        node.appendChild(anchorNode);
         node.setAttribute("r", color.red.toString());
         node.setAttribute("g", color.green.toString());
         node.setAttribute("b", color.blue.toString());

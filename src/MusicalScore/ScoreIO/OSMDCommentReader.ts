@@ -1,9 +1,10 @@
 import { GraphicalComment } from "../Graphical/GraphicalComment";
-import { Fraction, FontStyleString } from "../../Common";
+import { FontStyleString } from "../../Common";
 import { EngravingRules } from "../Graphical/EngravingRules";
-import { OSMDColor } from "../../Common/DataObjects";
+import { OSMDColor, PointF2D } from "../../Common/DataObjects";
 import { FontString } from "../../Common/Enums/Fonts";
 import { AnnotationsSheet } from "../Graphical/Annotations/AnnotationsSheet";
+import { GraphicalObject } from "../Graphical";
 
 export class OSMDCommentReader {
     private rules: EngravingRules;
@@ -36,6 +37,21 @@ export class OSMDCommentReader {
 
     private graphicalCommentFromNode(node: Element): GraphicalComment {
         let comment: GraphicalComment = undefined;
+        const anchorNode: Element = node.getElementsByTagName("anchor")[0];
+        let anchorId: number = 0;
+        if (anchorNode.hasAttribute("id")) {
+            anchorId = parseInt(anchorNode.getAttribute("id"), 10);
+        }
+        const relativeNode: Element = anchorNode.getElementsByTagName("relative-position")[0];
+        let xPos: number = 0;
+        let yPos: number = 0;
+        if (relativeNode.hasAttribute("x")) {
+            xPos = parseInt(relativeNode.getAttribute("x"), 10);
+        }
+        if (relativeNode.hasAttribute("y")) {
+            yPos = parseInt(relativeNode.getAttribute("y"), 10);
+        }
+        /*
         const locationNode: Element = node.getElementsByTagName("location")[0];
         let num: number = 0;
         let denom: number = 0;
@@ -48,7 +64,7 @@ export class OSMDCommentReader {
         }
         if (locationNode.hasAttribute("whole")) {
             whole = parseInt(locationNode.getAttribute("whole"), 10);
-        }
+        }*/
         let r: number = 0;
         let g: number = 0;
         let b: number = 0;
@@ -88,11 +104,10 @@ export class OSMDCommentReader {
             }
         }
         const text: string = node.textContent.trim();
-
-        const timestamp: Fraction = new Fraction(num, denom, whole);
         comment = new GraphicalComment(this.rules, text, size, font, new OSMDColor(r, g, b), style);
-        //Todo: Graphical Voice Entry
-        comment.Location = timestamp;
+        comment.SetAnchorLocation(GraphicalObject.GraphicalObjectList[anchorId], new PointF2D(xPos, yPos));
+        //const timestamp: Fraction = new Fraction(num, denom, whole);
+        //comment.Location = timestamp;
         return comment;
     }
 }

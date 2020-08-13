@@ -42,10 +42,15 @@ export class OSMDAnnotationsManager {
         return this.graphic.GetNearestVoiceEntry(sheetLocation);
     }
 
-    public addComment(comment: GraphicalComment): void {
-        this.annotationSheet.AddCommentToStaffLine(comment.AssociatedVoiceEntry.parentStaffEntry.parentMeasure.ParentStaff.idInMusicSheet, comment);
+    public addComment(comment: GraphicalComment, sheetLocation: PointF2D): void {
+        const nearestVoiceEntry: GraphicalVoiceEntry = this.getNearestVoiceEntry(sheetLocation);
+        if (nearestVoiceEntry) {
+            comment.SetAnchorLocation(nearestVoiceEntry, sheetLocation);
+        }
+        comment.setLabelPositionAndShapeBorders();
+        this.annotationSheet.AddCommentToStaffLine(nearestVoiceEntry.parentStaffEntry.parentMeasure.ParentStaff.idInMusicSheet, comment);
         this.graphic.reCalculate();
-        this.drawer.initializeForDrawingPage(comment.AssociatedVoiceEntry.notes[0].ParentMusicPage);
+        this.drawer.initializeForDrawingPage(nearestVoiceEntry.notes[0].ParentMusicPage);
         this.drawer.drawLabel(comment.GraphicalLabel, GraphicalLayers.Notes);
     }
 }

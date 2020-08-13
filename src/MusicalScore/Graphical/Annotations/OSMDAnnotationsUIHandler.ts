@@ -2,7 +2,6 @@ import { IAnnotationsUIHandler } from "./Interfaces/IAnnotationsUIHandler";
 import { PointF2D } from "../../../Common/DataObjects/PointF2D";
 import { GraphicalComment } from "../..";
 import { EngravingRules } from "../EngravingRules";
-import { GraphicalVoiceEntry } from "../GraphicalVoiceEntry";
 import { OSMDAnnotationsManager } from "./OSMDAnnotationsManager";
 import { OSMDColor } from "../../../Common/DataObjects";
 import { CommentInputUI } from "./CommentInputUI";
@@ -79,18 +78,16 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         const clickLocation: PointF2D = this.commentInput.Location;
         const sheetLocation: PointF2D = this.getOSMDCoordinates(clickLocation);
         //TODO: This needs to be on the annotation container, and needs to be relative to measure/note
-        comment.GraphicalLabel.PositionAndShape.AbsolutePosition = sheetLocation;
+        //comment.GraphicalLabel.PositionAndShape.AbsolutePosition = sheetLocation;
         const colorArray: string[] = this.commentInput.FontColor.match(/\d{1,3}/g);
-        if (colorArray.length === 3) {
+        if (colorArray && colorArray.length === 3) {
             comment.FontColor = new OSMDColor(parseInt(colorArray[0], 10), parseInt(colorArray[1], 10), parseInt(colorArray[2], 10));
+        } else {
+            comment.FontColor = new OSMDColor(0, 0, 0);
         }
         comment.FontSize = this.commentInput.FontSize;
         comment.GraphicalLabel.Label.fontFamily = this.commentInput.FontFamily;
-        const nearestVoiceEntry: GraphicalVoiceEntry = this.aManager.getNearestVoiceEntry(sheetLocation);
-        if (nearestVoiceEntry) {
-            comment.SetAnchorLocation(nearestVoiceEntry, sheetLocation);
-        }
-        this.aManager.addComment(comment);
+        this.aManager.addComment(comment, sheetLocation);
         this.commentInput.hideAndClear();
     }
 

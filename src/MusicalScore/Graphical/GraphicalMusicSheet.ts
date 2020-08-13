@@ -187,8 +187,7 @@ export class GraphicalMusicSheet {
         this.calculator.prepareGraphicalMusicSheet();
     }
 
-    public AddComment(graphicalComment: GraphicalComment, parentStaffline: StaffLine = graphicalComment.ParentStaffline): void {
-        //const addedComment: GraphicalComment = this.calculator.calculateComment(parentStaffline, graphicalComment);
+    public AddComment(graphicalComment: GraphicalComment, parentStaffline: StaffLine): void {
         parentStaffline.GraphicalComments.push(graphicalComment);
     }
 

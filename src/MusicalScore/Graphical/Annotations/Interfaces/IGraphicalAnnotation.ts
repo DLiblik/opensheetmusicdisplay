@@ -1,20 +1,22 @@
 import { IXMLSerializable } from "../../../Interfaces/IXMLSerializable";
-import { GraphicalVoiceEntry } from "../..";
+import { GraphicalObject } from "../../GraphicalObject";
 import { PointF2D } from "../../../../Common/DataObjects";
 
-export abstract class IGraphicalAnnotation implements IXMLSerializable {
+export abstract class IGraphicalAnnotation extends GraphicalObject implements IXMLSerializable {
     public abstract SerializeToXML(document: XMLDocument, args: Object): Node;
-    protected relativeLocation: PointF2D;
-    public get RelativeLocation(): PointF2D {
-        return this.relativeLocation;
+    protected anchorObject: GraphicalObject;
+    public get AnchorObject(): GraphicalObject {
+        return this.anchorObject;
     }
-    protected associatedVoiceEntry: GraphicalVoiceEntry;
-    public get AssociatedVoiceEntry(): GraphicalVoiceEntry {
-        return this.associatedVoiceEntry;
+    public set AnchorObject(anchorObject: GraphicalObject) {
+        this.anchorObject = anchorObject;
+        this.PositionAndShape.Parent = anchorObject.PositionAndShape;
     }
-    public SetAnchorLocation(gve: GraphicalVoiceEntry, sheetPosition: PointF2D): void {
-        this.associatedVoiceEntry = gve;
-        this.relativeLocation = new PointF2D (sheetPosition.x - this.associatedVoiceEntry.PositionAndShape.AbsolutePosition.x,
-                                              sheetPosition.y - this.associatedVoiceEntry.PositionAndShape.AbsolutePosition.y);
+    //TODO: I think this will go back in the AnnotationsManager, since we will be reading relative location directly from xml
+    public SetAnchorLocation(anchorObject: GraphicalObject, sheetLocation: PointF2D): void {
+        const relativeLocation: PointF2D = new PointF2D (sheetLocation.x - anchorObject.PositionAndShape.AbsolutePosition.x,
+                                                         sheetLocation.y - anchorObject.PositionAndShape.AbsolutePosition.y);
+        this.AnchorObject = anchorObject;
+        this.PositionAndShape.RelativePosition = relativeLocation;
     }
 }

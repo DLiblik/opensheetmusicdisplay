@@ -942,27 +942,23 @@ export abstract class MusicSheetCalculator {
                 continue;
             }
             for (const graphicalComment of commentList) {
-                const fractionLocation: Fraction = graphicalComment.AssociatedVoiceEntry.parentStaffEntry.getAbsoluteTimestamp();
-                let startX: number = this.getRelativeXPositionFromTimestamp(fractionLocation);
-                startX += graphicalComment.RelativeLocation.x;
-                let startY: number = graphicalComment.AssociatedVoiceEntry.PositionAndShape.AbsolutePosition.y;
-                startY += graphicalComment.RelativeLocation.y;
-                graphicalComment.PositionAndShape.RelativePosition = new PointF2D(startX, startY);
-                graphicalComment.setLabelPositionAndShapeBorders();
-                //loop through music systems, find where comments belong
-                for (const musicSystem of this.musicSystems) {
-                    const systemStart: Fraction = musicSystem.GetSystemsFirstTimeStamp();
-                    const systemEnd: Fraction = musicSystem.GetSystemsLastTimeStamp();
-                    if (fractionLocation.gte(systemStart) && fractionLocation.lte(systemEnd)) {
-                        const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
-                        staffline.GraphicalComments.push(graphicalComment);
+                if (graphicalComment.AnchorObject instanceof GraphicalVoiceEntry) {
+                    const fractionLocation: Fraction = graphicalComment.AnchorObject.parentStaffEntry.getAbsoluteTimestamp();
+                    //loop through music systems, find which staffline comment belongs to
+                    for (const musicSystem of this.musicSystems) {
+                        const systemStart: Fraction = musicSystem.GetSystemsFirstTimeStamp();
+                        const systemEnd: Fraction = musicSystem.GetSystemsLastTimeStamp();
+                        if (fractionLocation.gte(systemStart) && fractionLocation.lte(systemEnd)) {
+                            const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
+                            staffline.GraphicalComments.push(graphicalComment);
+                        }
                     }
                 }
             }
         }
     }
-
-    public calculateComment(staffline: StaffLine, graphicalComment: GraphicalComment): GraphicalComment {
+    //TODO: Will go away?
+    /*public calculateComment(staffline: StaffLine, graphicalComment: GraphicalComment): GraphicalComment {
         graphicalComment.PositionAndShape = new BoundingBox(graphicalComment, staffline.PositionAndShape);
         const sbc: SkyBottomLineCalculator = staffline.SkyBottomLineCalculator;
         const startPositionX: number = this.getRelativeXPositionFromTimestamp(graphicalComment.Location);
@@ -977,7 +973,7 @@ export abstract class MusicSheetCalculator {
         commentBB.RelativePosition.y = skylineValue;
         sbc.updateSkyLineInRange(start, end, skylineValue);
         return graphicalComment;
-    }
+    }*/
 
     protected calculateChordSymbols(): void {
         for (const musicSystem of this.musicSystems) {
