@@ -698,6 +698,9 @@ export class OpenSheetMusicDisplay {
         if (options.stretchLastSystemLine !== undefined) {
             this.rules.StretchLastSystemLine = options.stretchLastSystemLine;
         }
+        if (options.autoGenerateMutipleRestMeasuresFromRestMeasures !== undefined) {
+            this.rules.AutoGenerateMutipleRestMeasuresFromRestMeasures = options.autoGenerateMutipleRestMeasuresFromRestMeasures;
+        }
     }
 
     public setColoringMode(options: IOSMDOptions): void {
@@ -892,7 +895,6 @@ export class OpenSheetMusicDisplay {
                 this.cursor.hidden = hidden;
                 if (previousIterator) {
                     this.cursor.iterator = previousIterator;
-                    this.cursor.updateCurrentPage();
                     this.cursor.update();
                 }
             }

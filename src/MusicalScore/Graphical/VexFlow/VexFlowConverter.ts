@@ -27,6 +27,7 @@ import { Note } from "../../../MusicalScore/VoiceData/Note";
 import StaveNote = Vex.Flow.StaveNote;
 import { ArpeggioType } from "../../VoiceData/Arpeggio";
 import { TabNote } from "../../VoiceData/TabNote";
+import { PlacementEnum } from "../../VoiceData/Expressions/AbstractExpression";
 
 /**
  * Helper class, which contains static methods which actually convert
@@ -477,7 +478,7 @@ export class VexFlowConverter {
 
     public static generateOrnaments(vfnote: Vex.Flow.StemmableNote, oContainer: OrnamentContainer): void {
         let vfPosition: number = Vex.Flow.Modifier.Position.ABOVE;
-        if (vfnote.getStemDirection() === Vex.Flow.Stem.UP) {
+        if (oContainer.placement === PlacementEnum.Below) {
             vfPosition = Vex.Flow.Modifier.Position.BELOW;
         }
 
@@ -494,7 +495,7 @@ export class VexFlowConverter {
                 break;
             }
             case OrnamentEnum.InvertedMordent: {
-                vfOrna = new Vex.Flow.Ornament("mordent_inverted");
+                vfOrna = new Vex.Flow.Ornament("mordent"); // Vexflow uses baroque, not MusicXML definition
                 vfOrna.setDelayed(false);
                 break;
             }
@@ -504,7 +505,7 @@ export class VexFlowConverter {
                 break;
             }
             case OrnamentEnum.Mordent: {
-                vfOrna = new Vex.Flow.Ornament("mordent");
+                vfOrna = new Vex.Flow.Ornament("mordent_inverted");
                 vfOrna.setDelayed(false);
                 break;
             }
@@ -530,7 +531,7 @@ export class VexFlowConverter {
             if (oContainer.AccidentalAbove !== AccidentalEnum.NONE) {
                 vfOrna.setUpperAccidental(Pitch.accidentalVexflow(oContainer.AccidentalAbove));
             }
-            vfOrna.setPosition(vfPosition);
+            vfOrna.setPosition(vfPosition); // Vexflow draws it above right now in any case, never below
             (vfnote as StaveNote).addModifier(0, vfOrna);
         }
     }
