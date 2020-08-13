@@ -1,13 +1,11 @@
 import { GraphicalMusicSheet, GraphicalComment, GraphicalVoiceEntry, GraphicalLayers, MusicSheetCalculator, SkyBottomLineCalculator, StaffLine } from "..";
-import { IAnnotationsManager } from "./Interfaces/IAnnotationsManager";
 import { EngravingRules } from "../EngravingRules";
 import { VexFlowMusicSheetDrawer } from "../VexFlow";
 import { AnnotationsSheet } from "./AnnotationsSheet";
-import { AnnotationContainer } from "./AnnotationContainer";
 import { PointF2D } from "../../../Common/DataObjects";
 import { GraphicalStaffEntry } from "../..";
 
-export class OSMDAnnotationsManager implements IAnnotationsManager {
+export class OSMDAnnotationsManager {
     private graphic: GraphicalMusicSheet;
     private annotationSheet: AnnotationsSheet;
     public drawer: VexFlowMusicSheetDrawer;
@@ -44,12 +42,7 @@ export class OSMDAnnotationsManager implements IAnnotationsManager {
         return this.graphic.GetNearestVoiceEntry(sheetLocation);
     }
 
-    public addStafflineComment(annotationContainer: AnnotationContainer): void {
-        if (!(annotationContainer.AnnotationObject instanceof GraphicalComment)) {
-            throw new Error("Object Not Instance of GraphicalComment.");
-        }
-        const comment: GraphicalComment = annotationContainer.AnnotationObject as GraphicalComment;
-        comment.AssociatedVoiceEntry = this.graphic.GetNearestVoiceEntry(annotationContainer.SheetClickLocation);
+    public addComment(comment: GraphicalComment): void {
         this.annotationSheet.AddCommentToStaffLine(comment.AssociatedVoiceEntry.parentStaffEntry.parentMeasure.ParentStaff.idInMusicSheet, comment);
         this.graphic.reCalculate();
         this.drawer.initializeForDrawingPage(comment.AssociatedVoiceEntry.notes[0].ParentMusicPage);

@@ -7,24 +7,10 @@ import { Fonts } from "../../Common/Enums/Fonts";
 import { EngravingRules } from "./EngravingRules";
 import { BoundingBox, StaffLine } from "..";
 import { Fraction } from "../../Common";
-import { GraphicalVoiceEntry } from "./GraphicalVoiceEntry";
 import { IGraphicalAnnotation } from "./Annotations/Interfaces/IGraphicalAnnotation";
+import { PointF2D } from "../../Common/DataObjects";
 
-export class GraphicalComment implements IGraphicalAnnotation {
-
-    private associatedVoiceEntry: GraphicalVoiceEntry;
-    public get AssociatedVoiceEntry(): GraphicalVoiceEntry {
-        return this.associatedVoiceEntry;
-    }
-    public set AssociatedVoiceEntry(gve: GraphicalVoiceEntry) {
-        this.associatedVoiceEntry = gve;
-        this.Location = this.associatedVoiceEntry.parentStaffEntry.getAbsoluteTimestamp();
-        //TODO: Make this coloring a drawing rule
-        for (const note of this.associatedVoiceEntry.parentVoiceEntry.Notes) {
-            note.NoteheadColor = this.graphicalLabel.Label.color.toString();
-            //note.StemColorXml = fontColor.toString();
-        }
-    }
+export class GraphicalComment extends IGraphicalAnnotation {
     public Location: Fraction;
     private graphicalLabel: GraphicalLabel;
     public get GraphicalLabel(): GraphicalLabel {
@@ -71,6 +57,7 @@ export class GraphicalComment implements IGraphicalAnnotation {
                 fontSize: number = 12, font: Fonts = Fonts.TimesNewRoman,
                 fontColor: OSMDColor = new OSMDColor(255, 0, 0),
                 fontStyle: FontStyles = FontStyles.Regular) {
+        super();
         fontSize /= 10;
         const innerLabel: Label = new Label(text, TextAlignmentEnum.LeftTop, font, true);
         innerLabel.fontHeight = fontSize;
@@ -78,6 +65,7 @@ export class GraphicalComment implements IGraphicalAnnotation {
         innerLabel.fontStyle = fontStyle;
         this.graphicalLabel = new GraphicalLabel(innerLabel, fontSize, innerLabel.textAlignment, rules, undefined);
     }
+    protected relativeLocation: PointF2D;
 
     public SerializeToXML(document: XMLDocument): Node {
         const color: OSMDColor = this.graphicalLabel.Label.color;

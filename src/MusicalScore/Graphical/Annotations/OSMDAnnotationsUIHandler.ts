@@ -2,13 +2,11 @@ import { IAnnotationsUIHandler } from "./Interfaces/IAnnotationsUIHandler";
 import { PointF2D } from "../../../Common/DataObjects/PointF2D";
 import { GraphicalComment } from "../..";
 import { EngravingRules } from "../EngravingRules";
-import { AnnotationContainer } from "./AnnotationContainer";
 import { GraphicalVoiceEntry } from "../GraphicalVoiceEntry";
 import { OSMDAnnotationsManager } from "./OSMDAnnotationsManager";
 import { OSMDColor } from "../../../Common/DataObjects";
 import { CommentInputUI } from "./CommentInputUI";
 import { CommentStylingUI } from "./CommentStylingUI";
-import { resolve } from "path";
 
 export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     private container: HTMLElement;
@@ -42,7 +40,7 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         this.commentStylingBox.registerListenerObject(this);
         this.listenForClick();
         return new Promise(function(mainResolve: (value?: any) => void, mainReject: (reason?: any) => void): void {
-            resolve();
+            mainResolve();
         });
     }
 
@@ -77,24 +75,22 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     }
 
     public onAdd(ev: MouseEvent): void {
-        const annotationContainer: AnnotationContainer = new AnnotationContainer();
         const comment: GraphicalComment = new GraphicalComment(this.rules, this.commentInput.TextValue);
-        annotationContainer.ClickLocation = this.commentInput.Location;
-        annotationContainer.SheetClickLocation = this.getOSMDCoordinates(annotationContainer.ClickLocation);
+        const clickLocation: PointF2D = this.commentInput.Location;
+        const sheetLocation: PointF2D = this.getOSMDCoordinates(clickLocation);
         //TODO: This needs to be on the annotation container, and needs to be relative to measure/note
-        comment.GraphicalLabel.PositionAndShape.AbsolutePosition = annotationContainer.SheetClickLocation;
+        comment.GraphicalLabel.PositionAndShape.AbsolutePosition = sheetLocation;
         const colorArray: string[] = this.commentInput.FontColor.match(/\d{1,3}/g);
         if (colorArray.length === 3) {
             comment.FontColor = new OSMDColor(parseInt(colorArray[0], 10), parseInt(colorArray[1], 10), parseInt(colorArray[2], 10));
         }
         comment.FontSize = this.commentInput.FontSize;
         comment.GraphicalLabel.Label.fontFamily = this.commentInput.FontFamily;
-        const nearestVoiceEntry: GraphicalVoiceEntry = this.aManager.getNearestVoiceEntry(annotationContainer.SheetClickLocation);
+        const nearestVoiceEntry: GraphicalVoiceEntry = this.aManager.getNearestVoiceEntry(sheetLocation);
         if (nearestVoiceEntry) {
-            comment.AssociatedVoiceEntry = nearestVoiceEntry;
+            comment.SetAnchorLocation(nearestVoiceEntry, sheetLocation);
         }
-        annotationContainer.AnnotationObject = comment;
-        this.aManager.addStafflineComment(annotationContainer);
+        this.aManager.addComment(comment);
         this.commentInput.hideAndClear();
     }
 

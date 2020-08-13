@@ -91,6 +91,7 @@ export class OSMDCommentReader {
 
         const timestamp: Fraction = new Fraction(num, denom, whole);
         comment = new GraphicalComment(this.rules, text, size, font, new OSMDColor(r, g, b), style);
+        //Todo: Graphical Voice Entry
         comment.Location = timestamp;
         return comment;
     }

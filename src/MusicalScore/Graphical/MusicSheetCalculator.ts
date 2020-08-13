@@ -869,13 +869,20 @@ export abstract class MusicSheetCalculator {
                 continue;
             }
             for (const graphicalComment of commentList) {
+                const fractionLocation: Fraction = graphicalComment.AssociatedVoiceEntry.parentStaffEntry.getAbsoluteTimestamp();
+                let startX: number = this.getRelativeXPositionFromTimestamp(fractionLocation);
+                startX += graphicalComment.RelativeLocation.x;
+                let startY: number = graphicalComment.AssociatedVoiceEntry.PositionAndShape.AbsolutePosition.y;
+                startY += graphicalComment.RelativeLocation.y;
+                graphicalComment.PositionAndShape.RelativePosition = new PointF2D(startX, startY);
+                graphicalComment.setLabelPositionAndShapeBorders();
                 //loop through music systems, find where comments belong
                 for (const musicSystem of this.musicSystems) {
                     const systemStart: Fraction = musicSystem.GetSystemsFirstTimeStamp();
                     const systemEnd: Fraction = musicSystem.GetSystemsLastTimeStamp();
-                    if (graphicalComment.Location.gte(systemStart) && graphicalComment.Location.lte(systemEnd)) {
+                    if (fractionLocation.gte(systemStart) && fractionLocation.lte(systemEnd)) {
                         const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
-                        staffline.GraphicalComments.push(this.calculateComment(staffline, graphicalComment));
+                        staffline.GraphicalComments.push(graphicalComment);
                     }
                 }
             }

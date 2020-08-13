@@ -576,7 +576,7 @@ export class GraphicalMusicSheet {
         let initialSearchArea: number = 1;
         const foundEntries: GraphicalVoiceEntry[] = [];
         //search up to 10 units away
-        while (foundEntries.length === 0 && initialSearchArea < 10) {
+        while (foundEntries.length === 0 && initialSearchArea < 20) {
             // Prepare search area
             const region: BoundingBox = new BoundingBox(undefined);
             region.BorderLeft = clickPosition.x - initialSearchArea;
