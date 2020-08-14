@@ -45,7 +45,11 @@ export class OSMDAnnotationsManager {
     public addComment(comment: GraphicalComment, sheetLocation: PointF2D): void {
         const nearestVoiceEntry: GraphicalVoiceEntry = this.getNearestVoiceEntry(sheetLocation);
         if (nearestVoiceEntry) {
-            comment.SetAnchorLocation(nearestVoiceEntry, sheetLocation);
+            const relativeLocation: PointF2D = new PointF2D (sheetLocation.x - nearestVoiceEntry.PositionAndShape.AbsolutePosition.x,
+                                                             sheetLocation.y - nearestVoiceEntry.PositionAndShape.AbsolutePosition.y);
+            comment.AnchorObject = nearestVoiceEntry.parentStaffEntry;
+            comment.Location = nearestVoiceEntry.parentStaffEntry.getAbsoluteTimestamp();
+            comment.PositionAndShape.RelativePosition = relativeLocation;
         }
         comment.setLabelPositionAndShapeBorders();
         this.annotationSheet.AddCommentToStaffLine(nearestVoiceEntry.parentStaffEntry.parentMeasure.ParentStaff.idInMusicSheet, comment);

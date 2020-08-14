@@ -1,10 +1,9 @@
 import { GraphicalComment } from "../Graphical/GraphicalComment";
 import { FontStyleString } from "../../Common";
 import { EngravingRules } from "../Graphical/EngravingRules";
-import { OSMDColor, PointF2D } from "../../Common/DataObjects";
+import { OSMDColor, PointF2D, Fraction } from "../../Common/DataObjects";
 import { FontString } from "../../Common/Enums/Fonts";
 import { AnnotationsSheet } from "../Graphical/Annotations/AnnotationsSheet";
-import { GraphicalObject } from "../Graphical";
 
 export class OSMDCommentReader {
     private rules: EngravingRules;
@@ -37,21 +36,13 @@ export class OSMDCommentReader {
 
     private graphicalCommentFromNode(node: Element): GraphicalComment {
         let comment: GraphicalComment = undefined;
-        const anchorNode: Element = node.getElementsByTagName("anchor")[0];
+
+        /*const anchorNode: Element = node.getElementsByTagName("anchor")[0];
         let anchorId: number = 0;
         if (anchorNode.hasAttribute("id")) {
             anchorId = parseInt(anchorNode.getAttribute("id"), 10);
-        }
-        const relativeNode: Element = anchorNode.getElementsByTagName("relative-position")[0];
-        let xPos: number = 0;
-        let yPos: number = 0;
-        if (relativeNode.hasAttribute("x")) {
-            xPos = parseInt(relativeNode.getAttribute("x"), 10);
-        }
-        if (relativeNode.hasAttribute("y")) {
-            yPos = parseInt(relativeNode.getAttribute("y"), 10);
-        }
-        /*
+        }*/
+
         const locationNode: Element = node.getElementsByTagName("location")[0];
         let num: number = 0;
         let denom: number = 0;
@@ -64,7 +55,18 @@ export class OSMDCommentReader {
         }
         if (locationNode.hasAttribute("whole")) {
             whole = parseInt(locationNode.getAttribute("whole"), 10);
-        }*/
+        }
+
+        const relativeNode: Element = locationNode.getElementsByTagName("relative-position")[0];
+        let xPos: number = 0;
+        let yPos: number = 0;
+        if (relativeNode.hasAttribute("x")) {
+            xPos = parseFloat(relativeNode.getAttribute("x"));
+        }
+        if (relativeNode.hasAttribute("y")) {
+            yPos = parseFloat(relativeNode.getAttribute("y"));
+        }
+
         let r: number = 0;
         let g: number = 0;
         let b: number = 0;
@@ -77,9 +79,9 @@ export class OSMDCommentReader {
         if (node.hasAttribute("b")) {
             b = parseInt(node.getAttribute("b"), 10);
         }
-        let size: number = 12;
+        let size: number = 1.2;
         if (node.hasAttribute("size")) {
-            size = parseInt(node.getAttribute("size"), 10);
+            size = parseFloat(node.getAttribute("size"));
         }
         let style: number = undefined;
         if (node.hasAttribute("style")) {
@@ -105,9 +107,10 @@ export class OSMDCommentReader {
         }
         const text: string = node.textContent.trim();
         comment = new GraphicalComment(this.rules, text, size, font, new OSMDColor(r, g, b), style);
-        comment.SetAnchorLocation(GraphicalObject.GraphicalObjectList[anchorId], new PointF2D(xPos, yPos));
-        //const timestamp: Fraction = new Fraction(num, denom, whole);
-        //comment.Location = timestamp;
+        comment.PositionAndShape.RelativePosition = new PointF2D(xPos, yPos);
+        //comment.AnchorObjectId = anchorId;
+        const timestamp: Fraction = new Fraction(num, denom, whole);
+        comment.Location = timestamp;
         return comment;
     }
 }

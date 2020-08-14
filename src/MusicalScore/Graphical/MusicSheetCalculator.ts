@@ -942,18 +942,23 @@ export abstract class MusicSheetCalculator {
                 continue;
             }
             for (const graphicalComment of commentList) {
-                if (graphicalComment.AnchorObject instanceof GraphicalVoiceEntry) {
-                    const fractionLocation: Fraction = graphicalComment.AnchorObject.parentStaffEntry.getAbsoluteTimestamp();
-                    //loop through music systems, find which staffline comment belongs to
-                    for (const musicSystem of this.musicSystems) {
-                        const systemStart: Fraction = musicSystem.GetSystemsFirstTimeStamp();
-                        const systemEnd: Fraction = musicSystem.GetSystemsLastTimeStamp();
-                        if (fractionLocation.gte(systemStart) && fractionLocation.lte(systemEnd)) {
-                            const staffline: StaffLine = musicSystem.StaffLines[stafflineIdx];
-                            staffline.GraphicalComments.push(graphicalComment);
-                        }
-                    }
+                let staffline: StaffLine = undefined;
+                let fractionLocation: Fraction = undefined;
+                if (graphicalComment.AnchorObject && graphicalComment.AnchorObject instanceof GraphicalStaffEntry) {
+                    fractionLocation = graphicalComment.AnchorObject.getAbsoluteTimestamp();
+                } else {
+                    fractionLocation = graphicalComment.Location;
                 }
+                const xLocation: [number, MusicSystem] = this.graphicalMusicSheet.calculateXPositionFromTimestamp(fractionLocation);
+                staffline = xLocation[1].StaffLines[stafflineIdx];
+
+                if (!graphicalComment.AnchorObject) {
+                    graphicalComment.AnchorObject = staffline.findClosestStaffEntry(xLocation[0]);
+                }
+
+                graphicalComment.PositionAndShape.Parent = graphicalComment.AnchorObject.PositionAndShape;
+                graphicalComment.setLabelPositionAndShapeBorders();
+                staffline.GraphicalComments.push(graphicalComment);
             }
         }
     }

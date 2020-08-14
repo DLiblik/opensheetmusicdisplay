@@ -62,7 +62,7 @@ import * as svg2pdf from '../node_modules/svg2pdf.js/dist/svg2pdf.min';
             "Telemann, G.P. - Sonate-Nr.1.2-Allegro": "TelemannWV40.102_Sonate-Nr.1.2-Allegro-F-Dur.xml",
         },
         comments = {
-            //"Beethoven_AnDieFerneGeliebte.xml": ["Beethoven_AnDieFerneGeliebte_comments.xml", "Beethoven_AnDieFerneGeliebte_comments_2.xml"]
+            "Beethoven_AnDieFerneGeliebte.xml": ["Beethoven_AnDieFerneGeliebte_comments.xml", ] //"Beethoven_AnDieFerneGeliebte_comments_2.xml"]
         },
         zoom = 1.0,
         // HTML Elements in the page

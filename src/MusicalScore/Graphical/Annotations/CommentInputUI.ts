@@ -40,7 +40,7 @@ export class CommentInputUI extends AUIController {
     }
 
     private defaultValues(): void {
-        this.FontSize = 12;
+        this.FontSize = 14;
         this.FontFamily = "Times New Roman";
         this.LineHeight = 1.15;
     }
@@ -56,7 +56,7 @@ export class CommentInputUI extends AUIController {
         return this.lineHeight;
     }
 
-    private fontSize: number = 12;
+    private fontSize: number = 14;
     public set FontSize(size: number) {
         this.fontSize = size;
         const fontSizeString: string = this.fontSize + "px";

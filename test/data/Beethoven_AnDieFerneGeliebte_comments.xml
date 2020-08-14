@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <comments>
-	<staffline id="0">
-		<comment r="255" g="0" b="0" size="14" style="Underlined" font="Kokila">Sing louder -Manuel
-		<location num="4" denom="4"/>
-		</comment>
-		<comment r="255" g="0" b="0" size="14">Sing this note more evenly -Manuel
-		<location num="7" denom="4"/>
-		</comment>
-	</staffline>
+  <staffline id="0">
+    <comment r="255" g="0" b="0" size="1.4" style="4">Sing louder -Manuel<location num="0" denom="1" whole="1"><relative-position x="-0.22355791621068022" y="-2.5799999999999983"/></location></comment>
+    <comment r="255" g="0" b="0" size="1.4">Sing this note more evenly -Manuel<location num="3" denom="4" whole="1"><relative-position x="-0.22355791621068022" y="-2.5799999999999983"/></location></comment>
+  </staffline>
+  <staffline id="1">
+    <comment r="0" g="0" b="0" size="1.2" font="&quot;Times New Roman&quot;">fasdfasdfasdfasdf<location num="3" denom="4"><relative-position x="3.1147053806625706" y="6.792710350181245"/></location></comment>
+  </staffline>
 </comments>

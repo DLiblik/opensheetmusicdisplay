@@ -70,7 +70,7 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     }
 
     public onSizeChange(ev: Event): void {
-        this.commentInput.FontSize = parseInt((ev.target as HTMLInputElement).value, 10);
+        this.commentInput.FontSize = parseFloat((ev.target as HTMLInputElement).value);
     }
 
     public onAdd(ev: MouseEvent): void {
@@ -85,7 +85,7 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         } else {
             comment.FontColor = new OSMDColor(0, 0, 0);
         }
-        comment.FontSize = this.commentInput.FontSize;
+        comment.FontSize = ((this.commentInput.FontSize) / 10);
         comment.GraphicalLabel.Label.fontFamily = this.commentInput.FontFamily;
         this.aManager.addComment(comment, sheetLocation);
         this.commentInput.hideAndClear();

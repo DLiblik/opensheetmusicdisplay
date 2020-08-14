@@ -6,10 +6,10 @@ import { FontStyles } from "../../Common/Enums/FontStyles";
 import { Fonts } from "../../Common/Enums/Fonts";
 import { EngravingRules } from "./EngravingRules";
 import { BoundingBox } from "..";
-import { IGraphicalAnnotation } from "./Annotations/Interfaces/IGraphicalAnnotation";
+import { AGraphicalAnnotation } from "./Annotations/Interfaces/AGraphicalAnnotation";
 import { PointF2D } from "../../Common/DataObjects";
 
-export class GraphicalComment extends IGraphicalAnnotation {
+export class GraphicalComment extends AGraphicalAnnotation {
     private graphicalLabel: GraphicalLabel;
     public get GraphicalLabel(): GraphicalLabel {
         return this.graphicalLabel;
@@ -30,10 +30,10 @@ export class GraphicalComment extends IGraphicalAnnotation {
         this.graphicalLabel.Label.color = color;
     }
     public get FontSize(): number {
-        return this.graphicalLabel.Label.fontHeight * 10;
+        return this.graphicalLabel.Label.fontHeight;
     }
     public set FontSize(fontHeight: number) {
-        this.graphicalLabel.Label.fontHeight = fontHeight / 10;
+        this.graphicalLabel.Label.fontHeight = fontHeight;
     }
     public get FontStyle(): FontStyles {
         return this.graphicalLabel.Label.fontStyle;
@@ -49,11 +49,10 @@ export class GraphicalComment extends IGraphicalAnnotation {
     }
     //TODO Getters and setters for these? Definitely want options
     constructor(rules: EngravingRules, text: string,
-                fontSize: number = 12, font: Fonts = Fonts.TimesNewRoman,
+                fontSize: number = 1.4, font: Fonts = Fonts.TimesNewRoman,
                 fontColor: OSMDColor = new OSMDColor(255, 0, 0),
                 fontStyle: FontStyles = FontStyles.Regular) {
         super();
-        fontSize /= 10;
         const innerLabel: Label = new Label(text, TextAlignmentEnum.LeftTop, font, true);
         innerLabel.fontHeight = fontSize;
         innerLabel.color = fontColor;
@@ -67,7 +66,7 @@ export class GraphicalComment extends IGraphicalAnnotation {
         const node: HTMLElement = document.createElement("comment");
         const textNode: Node = document.createTextNode(this.graphicalLabel.Label.text);
         node.appendChild(textNode);
-        /* TODO: Do we still need fraction?
+
         const locNode: HTMLElement = document.createElement("location");
         locNode.setAttribute("num", this.Location.Numerator.toString());
         locNode.setAttribute("denom", this.Location.Denominator.toString());
@@ -76,14 +75,13 @@ export class GraphicalComment extends IGraphicalAnnotation {
             locNode.setAttribute("whole", whole.toString());
         }
         node.appendChild(locNode);
-        */
-        const anchorNode: HTMLElement = document.createElement("anchor");
-        anchorNode.setAttribute("id", this.anchorObject.InternalID.toString());
+        //const anchorNode: HTMLElement = document.createElement("anchor");
+        //anchorNode.setAttribute("id", this.AnchorObject.InternalID.toString());
         const relativeNode: HTMLElement = document.createElement("relative-position");
         relativeNode.setAttribute("x", this.PositionAndShape.RelativePosition.x.toString());
         relativeNode.setAttribute("y", this.PositionAndShape.RelativePosition.y.toString());
-        anchorNode.appendChild(relativeNode);
-        node.appendChild(anchorNode);
+        locNode.appendChild(relativeNode);
+        node.appendChild(locNode);
         node.setAttribute("r", color.red.toString());
         node.setAttribute("g", color.green.toString());
         node.setAttribute("b", color.blue.toString());
