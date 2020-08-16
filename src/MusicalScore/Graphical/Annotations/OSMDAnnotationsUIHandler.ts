@@ -101,10 +101,14 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         const sheetLocation: PointF2D = this.getOSMDCoordinates(clickLocation);
         const annotation: AGraphicalAnnotation =  this.aManager.getNearestAnnotation(sheetLocation);
         if (annotation instanceof GraphicalComment) {
-            //TODO: Need to instruct commentinput + style UI as to current data
+            //TODO: Need to render more specifically.
             this.commentInput.show(clickLocation);
+            this.commentInput.FontColor = annotation.FontColor.toString();
+            this.commentInput.FontSize = annotation.FontSize * 10;
+            //this.commentInput.FontFamily = annotation.Font;
+            this.commentInput.TextValue = annotation.TextContent;
+            //TODO: Need to hide the rendered comment object
         }
-        this.commentInput.show(clickLocation);
     }
 
     public onColorChange(ev: Event): void {
