@@ -571,27 +571,29 @@ export class BoundingBox {
         }
         return undefined;
     }
-
+    //Generics don't work like this in TS. Casting doesn't filter out objects.
+    //instanceof doesn't work either with generic types. Hopefully instanceof becomes available at some point, for now we have to do annoyingly
+    //specific implementations after calling this to filter the objects.
     public getObjectsInRegion<T>(region: BoundingBox, liesInside: boolean = true): T[] {
         let result: T[] = [];
         for (const child of this.childElements) {
             result = result.concat(child.getObjectsInRegion<T>(region, liesInside));
         }
 
-        if (!result || result.length === 0) {
-            if (<T>this.dataObject) {
-                if (liesInside) {
-                    if (region.liesInsideBorders(this)) {
-                        return [this.dataObject as T];
-                    }
-                } else {
-                    if (region.collisionDetection(this)) {
-                        return [this.dataObject as T];
-                    }
+        //if (!result || result.length === 0) {
+        if (<T>this.dataObject) {
+            if (liesInside) {
+                if (region.liesInsideBorders(this)) {
+                    result.push(this.dataObject as T);
                 }
-                // FIXME Andrea: add here "return []"?
+            } else {
+                if (region.collisionDetection(this)) {
+                    result.push(this.dataObject as T);
+                }
             }
+            // FIXME Andrea: add here "return []"?
         }
+        //}
         return result;
         //return this.childElements.SelectMany(psi => psi.getObjectsInRegion<T>(region, liesInside));
     }

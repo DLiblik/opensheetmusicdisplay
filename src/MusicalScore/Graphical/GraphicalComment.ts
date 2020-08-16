@@ -54,6 +54,12 @@ export class GraphicalComment extends AGraphicalAnnotation {
     public set Font(font: Fonts) {
         this.graphicalLabel.Label.font = font;
     }
+    public get TextContent(): string {
+        return this.graphicalLabel.Label.text;
+    }
+    public set TextContent(value: string) {
+        this.graphicalLabel.Label.text = value;
+    }
     //TODO Getters and setters for these? Definitely want options
     constructor(rules: EngravingRules, text: string,
                 fontSize: number = 1.4, font: Fonts = Fonts.TimesNewRoman,

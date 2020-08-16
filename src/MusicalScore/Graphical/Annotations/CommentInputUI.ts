@@ -86,6 +86,10 @@ export class CommentInputUI extends AUIController {
     public get TextValue(): string {
         return this.commentInputElement.value;
     }
+    public set TextValue(value: string) {
+     this.commentInputElement.value = value;
+     this.resize();
+    }
 
     private xLocation: number = 0;
     private yLocation: number = 0;
