@@ -26,6 +26,7 @@ import {OutlineAndFillStyleEnum} from "./DrawingEnums";
 import { GraphicalComment, StaffLine } from ".";
 import { GraphicalVoiceEntry } from "./GraphicalVoiceEntry";
 import { AnnotationsSheet } from "./Annotations/AnnotationsSheet";
+import { AGraphicalAnnotation } from "./Annotations/Interfaces/AGraphicalAnnotation";
 
 /**
  * The graphical counterpart of a [[MusicSheet]]
@@ -578,6 +579,56 @@ export class GraphicalMusicSheet {
                     return clickedLabel;
                 }
             }
+        }
+        return undefined;
+    }
+
+    public GetNearestAnnotation(clickPosition: PointF2D): AGraphicalAnnotation {
+        let initialSearchArea: number = 4;
+        const foundEntries: AGraphicalAnnotation[] = [];
+        //search up to 10 units away
+        while (foundEntries.length === 0 && initialSearchArea < 8) {
+            // Prepare search area
+            const region: BoundingBox = new BoundingBox(undefined);
+            region.BorderLeft = clickPosition.x - initialSearchArea;
+            region.BorderTop = clickPosition.y - initialSearchArea;
+            region.BorderRight = clickPosition.x + initialSearchArea;
+            region.BorderBottom = clickPosition.y + initialSearchArea;
+            region.AbsolutePosition = new PointF2D(clickPosition.x, clickPosition.y);
+            region.calculateAbsolutePosition();
+            // Search for StaffEntries in region
+            for (let idx: number = 0, len: number = this.MusicPages.length; idx < len; ++idx) {
+                const graphicalMusicPage: GraphicalMusicPage = this.MusicPages[idx];
+                const entries: AGraphicalAnnotation[] = graphicalMusicPage.PositionAndShape.getObjectsInRegion<AGraphicalAnnotation>(region, false);
+                if (!entries || entries.length === 0) {
+                    continue;
+                } else {
+                    for (let idx2: number = 0, len2: number = entries.length; idx2 < len2; ++idx2) {
+                        const annotation: AGraphicalAnnotation = entries[idx2];
+                        if (annotation instanceof AGraphicalAnnotation) {
+                            foundEntries.push(annotation);
+                        }
+                    }
+                }
+            }
+            initialSearchArea++;
+        }
+        // Get closest entry
+        let closest: AGraphicalAnnotation = undefined;
+        for (let idx: number = 0, len: number = foundEntries.length; idx < len; ++idx) {
+            const annotation: AGraphicalAnnotation = foundEntries[idx];
+            if (closest === undefined) {
+                closest = annotation;
+            } else {
+                const deltaNew: number = this.CalculateDistance(annotation.PositionAndShape.AbsolutePosition, clickPosition);
+                const deltaOld: number = this.CalculateDistance(closest.PositionAndShape.AbsolutePosition, clickPosition);
+                if (deltaNew < deltaOld) {
+                    closest = annotation;
+                }
+            }
+        }
+        if (closest) {
+            return closest;
         }
         return undefined;
     }

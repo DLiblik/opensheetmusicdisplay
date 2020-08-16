@@ -125,12 +125,12 @@ export class CommentInputUI extends AUIController {
                    renderLocation.y - this.commentInputElement.clientHeight / 2);
         const self: CommentInputUI = this;
 
-        const downEventName: string = this.isTouch ? "ontouchstart" : "onmousedown";
-        const upEventName: string = this.isTouch ?  "ontouchend" : "onmouseup";
-        const moveEventName: string = this.isTouch ? "ontouchmove" : "onmousemove";
+        const downEventName: string = this.isTouchDevice ? "ontouchstart" : "onmousedown";
+        const upEventName: string = this.isTouchDevice ?  "ontouchend" : "onmouseup";
+        const moveEventName: string = this.isTouchDevice ? "ontouchmove" : "onmousemove";
         this.commentInputDragger[downEventName] = function(downEvent: MouseEvent | TouchEvent): void {
             downEvent.preventDefault();
-            if (self.isTouch && downEvent instanceof TouchEvent) {
+            if (self.isTouchDevice && downEvent instanceof TouchEvent) {
                 self.pos3 = downEvent.touches[0].clientX;
                 self.pos4 = downEvent.touches[0].clientY;
             } else if (downEvent instanceof MouseEvent) {
@@ -146,7 +146,7 @@ export class CommentInputUI extends AUIController {
                 mouseMoveEvent.preventDefault();
                 let x: number = 0;
                 let y: number = 0;
-                if (self.isTouch && mouseMoveEvent instanceof TouchEvent) {
+                if (self.isTouchDevice && mouseMoveEvent instanceof TouchEvent) {
                     x = mouseMoveEvent.touches[0].clientX;
                     y = mouseMoveEvent.touches[0].clientY;
                 } else if (mouseMoveEvent instanceof MouseEvent) {

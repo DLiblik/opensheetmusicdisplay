@@ -4,6 +4,7 @@ import { VexFlowMusicSheetDrawer } from "../VexFlow";
 import { AnnotationsSheet } from "./AnnotationsSheet";
 import { PointF2D } from "../../../Common/DataObjects";
 import { GraphicalStaffEntry } from "../..";
+import { AGraphicalAnnotation } from "./Interfaces/AGraphicalAnnotation";
 
 export class OSMDAnnotationsManager {
     private graphic: GraphicalMusicSheet;
@@ -16,7 +17,7 @@ export class OSMDAnnotationsManager {
         this.graphic.GetCalculator.AddAnnotationSheet(this.annotationSheet);
         this.drawer = drawer;
     }
-
+    //TODO: Likely don't need this. Can delete
     public calculateCommentWidth(comment: GraphicalComment): number {
         const widthToHeightRatio: number =
         MusicSheetCalculator.TextMeasurer.computeTextWidthToHeightRatio(
@@ -25,7 +26,7 @@ export class OSMDAnnotationsManager {
         return comment.FontSize * widthToHeightRatio;
     }
 
-    //From Fraction to fraction
+    //Need this possibly for other annotations (formata, dynamic, etc.)
     public getYPlacementForVoiceEntry(voiceEntry: GraphicalVoiceEntry, width: number = 2): number {
         if (!voiceEntry || !voiceEntry) {
             return;
@@ -38,7 +39,7 @@ export class OSMDAnnotationsManager {
         return parentStaffLine.PositionAndShape.AbsolutePosition.y + sbc.getSkyLineMinInRange(start, end);
     }
 
-    public getNearestVoiceEntry(sheetLocation: PointF2D): GraphicalVoiceEntry {
+    private getNearestVoiceEntry(sheetLocation: PointF2D): GraphicalVoiceEntry {
         return this.graphic.GetNearestVoiceEntry(sheetLocation);
     }
 
@@ -56,5 +57,9 @@ export class OSMDAnnotationsManager {
         this.graphic.reCalculate();
         this.drawer.initializeForDrawingPage(nearestVoiceEntry.notes[0].ParentMusicPage);
         this.drawer.drawLabel(comment.GraphicalLabel, GraphicalLayers.Notes);
+    }
+
+    public getNearestAnnotation(sheetLocation: PointF2D): AGraphicalAnnotation {
+        return this.graphic.GetNearestAnnotation(sheetLocation);
     }
 }

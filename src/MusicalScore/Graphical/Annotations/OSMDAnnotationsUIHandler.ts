@@ -6,6 +6,7 @@ import { OSMDAnnotationsManager } from "./OSMDAnnotationsManager";
 import { OSMDColor } from "../../../Common/DataObjects";
 import { CommentInputUI } from "./CommentInputUI";
 import { CommentStylingUI } from "./CommentStylingUI";
+import { AGraphicalAnnotation } from "./Interfaces/AGraphicalAnnotation";
 
 export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     private container: HTMLElement;
@@ -14,6 +15,8 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
     private rules: EngravingRules;
     private aManager: OSMDAnnotationsManager;
     private isTouchDevice: boolean;
+    //Millis of how long is valid for the next click of a double click
+    private readonly DOUBLE_CLICK_WINDOW: number = 200;
 
     constructor(container: HTMLElement, uIUrl: string, rules: EngravingRules, aManager: OSMDAnnotationsManager) {
         this.rules = rules;
@@ -55,14 +58,53 @@ export class OSMDAnnotationsUIHandler implements IAnnotationsUIHandler {
         return new PointF2D(x, y);
     }
 
+    private clickTimeout: NodeJS.Timeout;
+    private lastClick: number = 0;
+
     private listenForClick(): void {
+        const downEventName: string = this.isTouchDevice ? "ontouchend" : "onmouseup";
         const self: OSMDAnnotationsUIHandler = this;
-        this.container.onmousedown = (clickEvent: MouseEvent) => {
-            self.container.onmousedown = undefined;
-            const clickLocation: PointF2D = new PointF2D(clickEvent.pageX, clickEvent.pageY);
-            self.commentInput.show(clickLocation);
-            self.commentStylingBox.show();
+        this.container[downEventName] = function(clickEvent: MouseEvent | TouchEvent): void {
+            event.preventDefault();
+            const currentTime: number = new Date().getTime();
+            const clickLength: number = currentTime - self.lastClick;
+            clearTimeout(self.clickTimeout);
+            let x: number = 0;
+            let y: number = 0;
+            if (self.isTouchDevice && clickEvent instanceof TouchEvent) {
+                x = clickEvent.touches[0].pageX;
+                y = clickEvent.touches[0].pageY;
+            } else if (clickEvent instanceof MouseEvent) {
+                x = clickEvent.pageX;
+                y = clickEvent.pageY;
+            }
+            const clickLocation: PointF2D = new PointF2D(x, y);
+            if (clickLength < self.DOUBLE_CLICK_WINDOW && clickLength > 0) {
+                //double click
+                self.container[downEventName] = undefined;
+                self.doubleClickBehavior(clickLocation);
+            } else {
+                //single click
+                self.clickTimeout = setTimeout(function(): void {
+                    clearTimeout(self.clickTimeout);
+                    self.container[downEventName] = undefined;
+                    self.commentInput.show(clickLocation);
+                    self.commentStylingBox.show();
+                },                             self.DOUBLE_CLICK_WINDOW);
+            }
+            self.lastClick = currentTime;
         };
+    }
+
+    private doubleClickBehavior(clickLocation: PointF2D): void {
+        //TODO: Edit existing annotations functionality
+        const sheetLocation: PointF2D = this.getOSMDCoordinates(clickLocation);
+        const annotation: AGraphicalAnnotation =  this.aManager.getNearestAnnotation(sheetLocation);
+        if (annotation instanceof GraphicalComment) {
+            //TODO: Need to instruct commentinput + style UI as to current data
+            this.commentInput.show(clickLocation);
+        }
+        this.commentInput.show(clickLocation);
     }
 
     public onColorChange(ev: Event): void {

@@ -2,16 +2,16 @@ import { PointF2D } from "../../../../Common/DataObjects";
 
 export abstract class AUIController {
     protected parentElement: HTMLElement;
-    protected isTouch: boolean;
+    protected isTouchDevice: boolean;
     protected eventListener: any;
     public readonly abstract ValidEvents: Array<string>;
     protected abstract initialize(): void;
     public abstract show(location?: PointF2D): void;
     public abstract hideAndClear(): void;
 
-    constructor(parentElement: HTMLElement = document.body, isTouch: boolean = false) {
+    constructor(parentElement: HTMLElement = document.body, isTouchDevice: boolean = false) {
         this.parentElement = parentElement;
-        this.isTouch = this.isTouch;
+        this.isTouchDevice = isTouchDevice;
         this.initialize();
     }
     //Need this instead of a callback so we have an object context (can use this keyword)

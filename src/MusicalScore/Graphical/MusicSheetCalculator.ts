@@ -956,7 +956,6 @@ export abstract class MusicSheetCalculator {
                     graphicalComment.AnchorObject = staffline.findClosestStaffEntry(xLocation[0]);
                 }
 
-                graphicalComment.PositionAndShape.Parent = graphicalComment.AnchorObject.PositionAndShape;
                 graphicalComment.setLabelPositionAndShapeBorders();
                 staffline.GraphicalComments.push(graphicalComment);
             }

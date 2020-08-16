@@ -5,23 +5,30 @@ import { OSMDColor } from "../../Common/DataObjects/OSMDColor";
 import { FontStyles } from "../../Common/Enums/FontStyles";
 import { Fonts } from "../../Common/Enums/Fonts";
 import { EngravingRules } from "./EngravingRules";
-import { BoundingBox } from "..";
 import { AGraphicalAnnotation } from "./Annotations/Interfaces/AGraphicalAnnotation";
 import { PointF2D } from "../../Common/DataObjects";
+import { GraphicalObject } from "./GraphicalObject";
+import { BoundingBox } from ".";
 
 export class GraphicalComment extends AGraphicalAnnotation {
     private graphicalLabel: GraphicalLabel;
     public get GraphicalLabel(): GraphicalLabel {
         return this.graphicalLabel;
     }
-    public get PositionAndShape(): BoundingBox {
-        return this.GraphicalLabel.PositionAndShape;
-    }
-    public set PositionAndShape(bb: BoundingBox) {
-        this.GraphicalLabel.PositionAndShape = bb;
+    public set AnchorObject(anchor: GraphicalObject) {
+        this.anchorObject = anchor;
+        this.PositionAndShape.Parent = anchor.PositionAndShape;
     }
     public setLabelPositionAndShapeBorders(): void {
         this.GraphicalLabel.setLabelPositionAndShapeBorders();
+        this.PositionAndShape.BorderBottom = this.GraphicalLabel.PositionAndShape.BorderBottom;
+        this.PositionAndShape.BorderLeft = this.GraphicalLabel.PositionAndShape.BorderLeft;
+        this.PositionAndShape.BorderRight = this.GraphicalLabel.PositionAndShape.BorderRight;
+        this.PositionAndShape.BorderTop = this.GraphicalLabel.PositionAndShape.BorderTop;
+        this.PositionAndShape.BorderMarginBottom = this.GraphicalLabel.PositionAndShape.BorderMarginBottom;
+        this.PositionAndShape.BorderMarginLeft = this.GraphicalLabel.PositionAndShape.BorderMarginLeft;
+        this.PositionAndShape.BorderMarginRight = this.GraphicalLabel.PositionAndShape.BorderMarginRight;
+        this.PositionAndShape.BorderMarginTop = this.GraphicalLabel.PositionAndShape.BorderMarginTop;
     }
     public get FontColor(): OSMDColor {
         return this.graphicalLabel.Label.color;
@@ -57,7 +64,9 @@ export class GraphicalComment extends AGraphicalAnnotation {
         innerLabel.fontHeight = fontSize;
         innerLabel.color = fontColor;
         innerLabel.fontStyle = fontStyle;
-        this.graphicalLabel = new GraphicalLabel(innerLabel, fontSize, innerLabel.textAlignment, rules, undefined);
+        this.PositionAndShape = new BoundingBox(this, undefined);
+        this.graphicalLabel = new GraphicalLabel(innerLabel, fontSize, innerLabel.textAlignment, rules, this.PositionAndShape);
+        //this.PositionAndShape = this.graphicalLabel.PositionAndShape;
     }
     protected relativeLocation: PointF2D;
 
